@@ -1,0 +1,227 @@
+name: Sage
+version: 1.2.4
+main: com.boes.sage.Sage
+api-version: 1.21
+author: Boes
+depend:
+  - ProtocolLib
+permissions:
+  sage.staff:
+    description: Access to /punish command and staff broadcasts
+    default: op
+  sage.warn:
+    description: Access to /warn command
+    default: op
+  sage.mute:
+    description: Access to /mute command
+    default: op
+  sage.ban:
+    description: Access to /ban command
+    default: op
+  sage.blacklist:
+    description: Access to /blacklist command
+    default: op
+  sage.kick:
+    description: Access to /kick command
+    default: op
+  sage.unwarn:
+    description: Access to /unwarn command
+    default: op
+  sage.unmute:
+    description: Access to /unmute command
+    default: op
+  sage.unban:
+    description: Access to /unban command
+    default: op
+  sage.unblacklist:
+    description: Access to /unblacklist command
+    default: op
+  sage.history.self:
+    description: View your own punishment history
+    default: true
+  sage.history.others:
+    description: View other players punishment history
+    default: op
+  sage.staffmode:
+    description: Access to staff mode
+    default: op
+  sage.potion:
+    description: Access to /potion command
+    default: op
+  sage.enchantmentbook:
+    description: Access to /enchantmentbook command
+    default: op
+  sage.repair:
+    description: Access to /repair command
+    default: op
+  sage.heal:
+    description: Access to /heal command
+    default: op
+  sage.speed:
+    description: Access to /speed command
+    default: op
+  sage.respawn:
+    description: Access to /respawn command
+    default: op
+  sage.tphere:
+    description: Access to /tphere command
+    default: op
+  sage.tphereall:
+    description: Access to /tphereall command
+    default: op
+  sage.uuid:
+    description: Access to /uuid command
+    default: op
+  sage.dispose:
+    description: Access to /dispose command
+    default: true
+  sage.gamemode.creative:
+    description: Access to /gmc command
+    default: op
+  sage.gamemode.survival:
+    description: Access to /gms command
+    default: op
+  sage.gamemode.spectator:
+    description: Access to /gmsp command
+    default: op
+  sage.gamemode.adventure:
+    description: Access to /gma command
+    default: op
+  sage.tpt:
+    description: Access to /tpt command
+    default: op
+  sage.kickall:
+    description: Access to /kickall command
+    default: op
+  sage.kickall.bypass:
+    description: Bypass being kicked by /kickall
+    default: op
+  sage.spawnmob:
+    description: Access to /spawnmob command
+    default: op
+  sage.hat:
+    description: Access to /hat command
+    default: op
+  sage.openinv:
+    description: Access to /openinv command
+    default: op
+  sage.openender:
+    description: Access to /openender command
+    default: op
+  sage.world:
+    description: Access to /world command
+    default: op
+  sage.firstjoin:
+    description: Access to /firstjoin command
+    default: op
+  sage.item:
+    description: Access to /item command
+    default: op
+  sage.consolespy:
+    description: Access to /consolespy command
+    default: op
+  sage.commandspy:
+    description: Access to /commandspy command
+    default: op
+  sage.fly:
+    description: Access to /fly command
+    default: op
+  sage.seen:
+    description: Access to /seen command
+    default: op
+  sage.sudo:
+    description: Access to /sudo command
+    default: op
+  sage.ping:
+    description: Access to /ping command
+    default: true
+  sage.clear:
+    description: Access to /clear command
+    default: op
+  sage.tppos:
+    description: Access to /tppos command
+    default: op
+  sage.xp:
+    description: Access to /xp command
+    default: op
+  sage.warp:
+    description: Access to /warp command
+    default: op
+  sage.warp.admin:
+    description: Access to warp management and hidden warps
+    default: op
+  sage.vanish:
+    description: Access to /vanish command
+    default: op
+  sage.vanish.see:
+    description: Ability to see vanished players
+    default: op
+  sage.rules:
+    description: Access to /rules command
+    default: true
+  sage.broadcast:
+    description: Access to /broadcast command
+    default: op
+  sage.staffbroadcast:
+    description: Access to /staffbroadcast command
+    default: op
+  sage.mutechat:
+    description: Access to /mutechat command
+    default: op
+  sage.mutechat.bypass:
+    description: Bypass chat muting
+    default: op
+  sage.kit.claim:
+    description: Ability to claim kits
+    default: true
+  sage.kit.create:
+    description: Access to /kit create subcommand
+    default: op
+  sage.kit.delete:
+    description: Access to /kit delete subcommand
+    default: op
+  sage.chatlogs:
+    description: Access to /chatlogs command
+    default: op
+  sage.ptime:
+    description: Access to /ptime command
+    default: true
+  sage.pweather:
+    description: Access to /pweather command
+    default: true
+  sage.sit:
+    description: Access to /sit command
+    default: true
+  sage.sit.block:
+    description: Right-click to sit on blocks
+    default: true
+  sage.lay:
+    description: Access to /lay command
+    default: true
+  sage.spin:
+    description: Access to /spin command
+    default: true
+  sage.crawl:
+    description: Access to /crawl command
+    default: true
+  sage.givesittingstick:
+    description: Access to /givesittingstick command
+    default: op
+  sage.staffchat:
+    description: Access to /staffchat command
+    default: op
+  sage.adminchat:
+    description: Access to /adminchat command
+    default: op
+  sage.itemdb.add:
+    description: Access to /itemdb add subcommand
+    default: op
+  sage.itemdb.give:
+    description: Access to /itemdb give subcommand
+    default: op
+  sage.itemdb.delete:
+    description: Access to /itemdb delete subcommand
+    default: op
+  sage.itemdb.list:
+    description: Access to /itemdb list subcommand
+    default: op

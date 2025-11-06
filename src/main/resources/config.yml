@@ -1,0 +1,125 @@
+# Punishment reasons configuration
+# Define punishment reasons and their escalation paths
+# Example:
+punishment-reasons:
+  Spamming:
+     1:
+       type: warn
+     2:
+       type: mute
+       duration: 1h
+     3:
+       type: mute
+       duration: 12h
+     4:
+       type: mute
+       duration: 24h
+     5:
+       type: mute
+       duration: 3d
+  Toxicity:
+    1:
+      type: warn
+    2:
+      type: mute
+      duration: 6h
+    3:
+      type: mute
+      duration: 12h
+    4:
+      type: mute
+      duration: 1d
+    5:
+      type: mute
+      duration: 3d
+  Inappropriate Behavior:
+    1:
+      type: warn
+      reason: "We do not allow inappropriate behavior"
+    2:
+      type: mute
+      duration: 6h
+    3:
+      type: mute
+      duration: 12h
+    4:
+      type: mute
+      duration: 1d
+    5:
+      type: mute
+      duration: 3d
+  Death Wishes:
+    1:
+      type: mute
+      duration: 3d
+    2:
+      type: mute
+      duration: 7d
+    3:
+      type: mute
+      duration: 2w
+    4:
+      type: mute
+      duration: 1m
+
+  Cheating:
+    1:
+      type: ban
+      duration: 7d
+    2:
+      type: ban
+      duration: 14d
+    3:
+      type: ban
+      duration: 30d
+    4:
+      type: ban
+      duration: 60d
+    5:
+      type: ban
+      duration: permanent
+  Bug abuse:
+    1:
+      type: warn
+      reason: "Abusing a bug in the game"
+    2:
+      type: kick
+      reason: "Abusing a bug in the game"
+    3:
+      type: ban
+      duration: 1d
+    4:
+      type: ban
+      duration: 3d
+    5:
+      type: ban
+      duration: 7d
+# Rules Configuration
+rules:
+  title: "&e&lSERVER RULES"
+  content:
+    - "&7Rule 1: Be respectful to all players"
+    - "&7Rule 2: No griefing or stealing"
+    - "&7Rule 3: No hacking or exploiting"
+    - "&7Rule 4: No advertising"
+    - "&7Rule 5: Keep chat clean and friendly"
+
+# Messages Configuration
+messages:
+  # Ban screen message (shown when player is banned)
+  ban-screen: "&c&lYou have been banned!\n&7Reason: &f{reason}\n&7Duration: &f{duration}"
+  
+  # Blacklist screen message
+  blacklist-screen: "&c&lYou have been blacklisted!\n&7Reason: &f{reason}\n&7Duration: &f{duration}"
+  
+  # Mute notification (when player is muted)
+  mute-title: "&c&lYou have been MUTED"
+  mute-message: "&c&lYou have been muted!\n&7Reason: &f{reason}\n&7Duration: &f{duration}"
+  
+  # Warn notification (when player is warned)
+  warn-title: "&e&lYou have been WARNED"
+  warn-message: "&e&lYou have been warned!\n&7Reason: &f{reason}"
+
+# Broadcast message formatting
+broadcast:
+  prefix: "&6&l"

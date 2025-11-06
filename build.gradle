@@ -1,0 +1,43 @@
+plugins {
+    id 'java'
+    id 'com.github.johnrengelman.shadow' version '8.1.1'
+}
+
+group = 'com.boes'
+version = '1.2.4'
+
+repositories {
+    mavenCentral()
+
+    maven { url = "https://repo.papermc.io/repository/maven-public/" }
+
+    maven { url = "https://repo.aikar.co/content/groups/aikar/" }
+
+
+    maven { url = "https://jitpack.io" }
+
+    maven {
+        url 'https://repo.xenondevs.xyz/releases'
+    }
+}
+
+dependencies {
+    compileOnly("io.papermc.paper:paper-api:1.21.8-R0.1-SNAPSHOT")
+
+    implementation("co.aikar:acf-paper:0.5.1-SNAPSHOT")
+
+    implementation "xyz.xenondevs.invui:invui:1.47"
+
+    compileOnly 'net.dmulloy2:ProtocolLib:5.4.0'
+
+    compileOnly("com.github.Gecolay.GSit:core:3.0.1")
+}
+
+java {
+    sourceCompatibility = JavaVersion.VERSION_21
+    targetCompatibility = JavaVersion.VERSION_21
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}

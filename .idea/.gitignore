@@ -1,0 +1,9 @@
+# Default ignored files
+/shelf/
+/workspace.xml
+# Zencoder local files
+/zencoder/chats
+/zencoder-chat-index.xml
+/zencoder-chats-dedicated.xml
+
+/build/
