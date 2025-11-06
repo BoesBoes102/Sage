@@ -51,7 +51,7 @@ public class InventoryClickListener implements Listener {
             if (punishmentType != null) {
                 String targetName = title.replace("§8Punishment History: §e", "");
                 OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
-                new HistoryDetailsGUI(Bukkit.getPluginManager().getPlugin("Sage"), player, target, punishmentType).open();
+                new HistoryDetailsGUI((com.boes.sage.Sage) Bukkit.getPluginManager().getPlugin("Sage"), player, target, punishmentType).open();
             }
             return;
         }
@@ -78,7 +78,7 @@ public class InventoryClickListener implements Listener {
             if (meta.getDisplayName().contains("Back")) {
                 String targetName = title.split("§e")[1];
                 OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
-                new com.boes.sage.gui.HistoryGUI(Bukkit.getPluginManager().getPlugin("Sage"), player, target).open();
+                new com.boes.sage.gui.HistoryGUI((com.boes.sage.Sage) Bukkit.getPluginManager().getPlugin("Sage"), player, target).open();
             }
             return;
         }

@@ -12,7 +12,6 @@ import org.bukkit.entity.Player;
 
 @CommandAlias("sudo")
 @Description("Force a player to execute a command")
-@Syntax("<player> <true|false> <command...>")
 public class SudoCommand extends BaseCommand {
 
     private final Sage plugin;
@@ -23,6 +22,7 @@ public class SudoCommand extends BaseCommand {
 
     @CommandCompletion("@players true|false")
     @Conditions("permission:sage.sudo")
+    @Syntax("<player> <true|false> <command...>")
     public void onCommand(org.bukkit.command.CommandSender sender, Player target, boolean withOp, String[] args) {
         StringBuilder commandBuilder = new StringBuilder();
         if (args != null && args.length > 0) {
