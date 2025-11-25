@@ -4,7 +4,7 @@ plugins {
 }
 
 group = 'com.boes'
-version = '1.3.0'
+version = '1.3.7'
 
 repositories {
     mavenCentral()
@@ -13,12 +13,8 @@ repositories {
 
     maven { url = "https://repo.aikar.co/content/groups/aikar/" }
 
-
     maven { url = "https://jitpack.io" }
 
-    maven {
-        url 'https://repo.xenondevs.xyz/releases'
-    }
 }
 
 dependencies {
@@ -26,11 +22,7 @@ dependencies {
 
     implementation("co.aikar:acf-paper:0.5.1-SNAPSHOT")
 
-    implementation "xyz.xenondevs.invui:invui:1.47"
 
-    compileOnly 'net.dmulloy2:ProtocolLib:5.4.0'
-
-    compileOnly("com.github.Gecolay.GSit:core:3.0.1")
 }
 
 java {

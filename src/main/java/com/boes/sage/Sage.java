@@ -1,9 +1,9 @@
 package com.boes.sage;
 
 import co.aikar.commands.PaperCommandManager;
-import com.boes.sage.StaffCommands.*;
-import com.boes.sage.TeleportCommands.*;
-import com.boes.sage.QOLCommands.*;
+import com.boes.sage.commands.StaffCommands.*;
+import com.boes.sage.commands.TeleportCommands.*;
+import com.boes.sage.commands.QOLCommands.*;
 import com.boes.sage.data.PunishmentData;
 import com.boes.sage.listeners.ChatListener;
 import com.boes.sage.listeners.CommandSpyListener;
@@ -24,11 +24,15 @@ import com.boes.sage.managers.NotificationManager;
 import com.boes.sage.managers.ChatLogManager;
 import com.boes.sage.managers.ItemDatabaseManager;
 import org.bukkit.Bukkit;
+import org.bukkit.Material;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.bukkit.enchantments.Enchantment;
 import org.bukkit.plugin.java.JavaPlugin;
+import org.bukkit.potion.PotionEffectType;
 import java.io.File;
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -36,6 +40,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class Sage extends JavaPlugin {
 
@@ -63,6 +68,42 @@ public class Sage extends JavaPlugin {
 
         try {
             commandManager = new PaperCommandManager(this);
+            commandManager.getCommandContexts().registerContext(PotionEffectType.class, c -> {
+                String input = c.popFirstArg();
+                PotionEffectType type = PotionEffectType.getByName(input.toUpperCase());
+                if (type == null) {
+                    throw new IllegalArgumentException("Invalid potion effect type: " + input);
+                }
+                return type;
+            });
+            commandManager.getCommandContexts().registerContext(Enchantment.class, c -> {
+                String input = c.popFirstArg();
+                Enchantment enchantment = Enchantment.getByName(input.toUpperCase());
+                if (enchantment == null) {
+                    throw new IllegalArgumentException("Invalid enchantment: " + input);
+                }
+                return enchantment;
+            });
+
+            commandManager.getCommandCompletions().registerCompletion("potioneffecttypes", c -> 
+                Arrays.stream(PotionEffectType.values())
+                    .filter(type -> type != null && type.getName() != null)
+                    .map(type -> type.getName().toLowerCase())
+                    .collect(Collectors.toList())
+            );
+
+            commandManager.getCommandCompletions().registerCompletion("materials", c ->
+                Arrays.stream(Material.values())
+                    .map(m -> m.name().toLowerCase())
+                    .collect(Collectors.toList())
+            );
+
+
+            commandManager.getCommandCompletions().registerCompletion("enchantments", c ->
+                Arrays.stream(Enchantment.values())
+                    .map(e -> e.getKey().getKey())
+                    .collect(Collectors.toList())
+            );
         } catch (Exception e) {
             getLogger().severe("Failed to initialize ACF command manager: " + e.getMessage());
             e.printStackTrace();
@@ -80,6 +121,33 @@ public class Sage extends JavaPlugin {
         chatLogManager = new ChatLogManager(this);
         itemDatabaseManager = new ItemDatabaseManager(this);
         loadPunishmentReasons();
+
+        try {
+            commandManager.getCommandCompletions().registerCompletion("itemdb", c ->
+                itemDatabaseManager.getItemNames().stream().sorted().collect(Collectors.toList())
+            );
+
+            commandManager.getCommandCompletions().registerCompletion("punishReasons", c ->
+                new java.util.ArrayList<>(punishmentReasons.keySet())
+            );
+
+            commandManager.getCommandCompletions().registerCompletion("kits", c ->
+                kitManager.getKitNames().stream().sorted().collect(Collectors.toList())
+            );
+
+            commandManager.getCommandCompletions().registerCompletion("warp", c ->
+                    warpManager.getWarpNames(false));
+
+            commandManager.getCommandCompletions().registerCompletion("entitytypes", c ->
+                Arrays.stream(org.bukkit.entity.EntityType.values())
+                    .filter(et -> et.isSpawnable() && et.isAlive())
+                    .map(et -> et.name().toLowerCase())
+                    .collect(Collectors.toList())
+            );
+        } catch (Exception e) {
+            getLogger().severe("Failed to register command completions: " + e.getMessage());
+            e.printStackTrace();
+        }
 
         try {
             commandManager.registerCommand(new PunishCommand(this));
@@ -111,14 +179,13 @@ public class Sage extends JavaPlugin {
             commandManager.registerCommand(new ClearCommand(this));
             commandManager.registerCommand(new VanishCommand(this));
             commandManager.registerCommand(new RulesCommand(this));
-            commandManager.registerCommand(new SitCommand(this));
             commandManager.registerCommand(new HatCommand(this));
             commandManager.registerCommand(new SeenCommand());
             commandManager.registerCommand(new SudoCommand(this));
             commandManager.registerCommand(new SpeedCommand(this));
             commandManager.registerCommand(new XpCommand(this));
+            commandManager.registerCommand(new CustomGradientCommand(this));
             commandManager.registerCommand(new ItemCommand(this));
-            commandManager.registerCommand(new LayCommand(this));
             commandManager.registerCommand(new UuidCommand(this));
             commandManager.registerCommand(new PTimeCommand(this));
             commandManager.registerCommand(new RepairCommand(this));
@@ -127,13 +194,10 @@ public class Sage extends JavaPlugin {
             commandManager.registerCommand(new RespawnCommand(this));
             commandManager.registerCommand(new PWeatherCommand(this));
             commandManager.registerCommand(new SpawnMobCommand(this));
-            commandManager.registerCommand(new SpinCommand(this));
-            commandManager.registerCommand(new CrawlCommand(this));
             commandManager.registerCommand(new FirstJoinCommand());
             commandManager.registerCommand(new CommandSpyCommand(this));
             commandManager.registerCommand(new ConsoleSpyCommand(this));
-            openInventoryCommand = new OpenInventoryCommand(this);
-            commandManager.registerCommand(openInventoryCommand);
+            commandManager.registerCommand(new OpenInventoryCommand(this));
             commandManager.registerCommand(new OpenEnderChestCommand(this));
             commandManager.registerCommand(new EnchantmentBookCommand(this));
             commandManager.registerCommand(new GamemodeCreativeCommand(this));
@@ -176,6 +240,10 @@ public class Sage extends JavaPlugin {
     @Override
     public void onDisable() {
         saveMarkedChairs();
+
+        if (chatLogManager != null) {
+            chatLogManager.saveLogs();
+        }
 
         if (spyManager != null) {
             for (java.util.UUID uuid : spyManager.getConsoleSpyPlayers()) {
