@@ -6,6 +6,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
 import org.yaml.snakeyaml.external.biz.base64Coder.Base64Coder;
@@ -28,6 +29,10 @@ public class KitManager {
     }
 
     public void createKit(String name, String duration, ItemStack[] items) {
+        createKit(name, duration, items, new ItemStack[4], null);
+    }
+
+    public void createKit(String name, String duration, ItemStack[] items, ItemStack[] armor, ItemStack offhand) {
         JsonObject json = storageManager.load();
         JsonObject kitObj = new JsonObject();
         kitObj.addProperty("duration", duration);
@@ -35,6 +40,14 @@ public class KitManager {
         List<ItemStack> itemList = new ArrayList<>(Arrays.asList(items));
         itemList.removeIf(Objects::isNull);
         kitObj.add("items", serializeItemStacks(itemList.toArray(new ItemStack[0])));
+
+        List<ItemStack> armorList = new ArrayList<>(Arrays.asList(armor));
+        armorList.removeIf(Objects::isNull);
+        kitObj.add("armor", serializeItemStacks(armorList.toArray(new ItemStack[0])));
+
+        if (offhand != null && !offhand.getType().isAir()) {
+            kitObj.add("offhand", serializeItemStacks(new ItemStack[]{offhand}));
+        }
         
         json.add(name.toLowerCase(), kitObj);
         storageManager.save(json);
@@ -81,6 +94,42 @@ public class KitManager {
     public ItemStack[] getKitItemsArray(String name) {
         List<ItemStack> items = getKitItems(name);
         return items.toArray(new ItemStack[0]);
+    }
+
+    public List<ItemStack> getKitArmor(String name) {
+        JsonObject json = storageManager.load();
+        if (json.has(name.toLowerCase())) {
+            JsonObject kitObj = json.getAsJsonObject(name.toLowerCase());
+            if (kitObj.has("armor")) {
+                JsonArray armorArray = kitObj.getAsJsonArray("armor");
+                return deserializeItemStacks(armorArray);
+            }
+        }
+        return new ArrayList<>();
+    }
+
+    public ItemStack[] getKitArmorArray(String name) {
+        List<ItemStack> armor = getKitArmor(name);
+        ItemStack[] result = new ItemStack[4];
+        for (int i = 0; i < Math.min(armor.size(), 4); i++) {
+            result[i] = armor.get(i);
+        }
+        return result;
+    }
+
+    public ItemStack getKitOffhand(String name) {
+        JsonObject json = storageManager.load();
+        if (json.has(name.toLowerCase())) {
+            JsonObject kitObj = json.getAsJsonObject(name.toLowerCase());
+            if (kitObj.has("offhand")) {
+                JsonArray offhandArray = kitObj.getAsJsonArray("offhand");
+                List<ItemStack> offhandList = deserializeItemStacks(offhandArray);
+                if (!offhandList.isEmpty()) {
+                    return offhandList.get(0);
+                }
+            }
+        }
+        return null;
     }
 
     public void saveKitItems(String name, ItemStack[] items) {
@@ -185,7 +234,43 @@ public class KitManager {
         ItemStack[] items = getKitItemsArray(kitName);
         for (ItemStack item : items) {
             if (item != null) {
-                player.getInventory().addItem(item.clone());
+                if (player.getInventory().firstEmpty() == -1) {
+                    player.getWorld().dropItem(player.getLocation(), item.clone());
+                } else {
+                    player.getInventory().addItem(item.clone());
+                }
+            }
+        }
+
+        ItemStack[] armor = getKitArmorArray(kitName);
+        PlayerInventory inventory = player.getInventory();
+        for (int i = 0; i < armor.length; i++) {
+            if (armor[i] != null && !armor[i].getType().isAir()) {
+                ItemStack currentArmor = inventory.getArmorContents()[i];
+                if (currentArmor == null || currentArmor.getType().isAir()) {
+                    inventory.setArmorContents(armor);
+                    break;
+                } else {
+                    if (inventory.firstEmpty() == -1) {
+                        player.getWorld().dropItem(player.getLocation(), armor[i].clone());
+                    } else {
+                        inventory.addItem(armor[i].clone());
+                    }
+                }
+            }
+        }
+
+        ItemStack offhand = getKitOffhand(kitName);
+        if (offhand != null && !offhand.getType().isAir()) {
+            ItemStack currentOffhand = inventory.getItemInOffHand();
+            if (currentOffhand == null || currentOffhand.getType().isAir()) {
+                inventory.setItemInOffHand(offhand.clone());
+            } else {
+                if (inventory.firstEmpty() == -1) {
+                    player.getWorld().dropItem(player.getLocation(), offhand.clone());
+                } else {
+                    inventory.addItem(offhand.clone());
+                }
             }
         }
     }

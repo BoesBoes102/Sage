@@ -136,6 +136,17 @@ public class PunishmentManager {
         return removed;
     }
 
+    public boolean removeHistoryByIndex(UUID uuid, String type, int index) {
+        List<PunishmentHistory> history = getHistoryByType(uuid, type);
+        
+        if (index < 0 || index >= history.size()) {
+            return false;
+        }
+        
+        PunishmentHistory toRemove = history.get(index);
+        return removeHistoryByTimestamp(uuid, toRemove.getTimestamp());
+    }
+
     public void warn(OfflinePlayer target, String reason, Player issuer) {
         plugin.getLogger().info(issuer.getName() + " warned " + target.getName() + " for " + reason);
 

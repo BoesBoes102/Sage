@@ -32,11 +32,11 @@ public class HistoryGUI {
     }
 
     private void setupButtons() {
-        inventory.setItem(1, createButton(Material.YELLOW_WOOL, "§e§lWARNINGS", "warn"));
-        inventory.setItem(3, createButton(Material.RED_WOOL, "§c§lMUTES", "mute"));
-        inventory.setItem(5, createButton(Material.BLACK_WOOL, "§4§lBANS", "ban"));
-        inventory.setItem(7, createButton(Material.GRAY_WOOL, "§0§lBLACKLISTS", "blacklist"));
-        inventory.setItem(10, createButton(Material.ORANGE_WOOL, "§6§lKICKS", "kick"));
+        inventory.setItem(11, createButton(Material.YELLOW_WOOL, "§e§lWARNINGS", "warn"));
+        inventory.setItem(12, createButton(Material.RED_WOOL, "§c§lMUTES", "mute"));
+        inventory.setItem(13, createButton(Material.BLACK_WOOL, "§4§lBANS", "ban"));
+        inventory.setItem(14, createButton(Material.GRAY_WOOL, "§0§lBLACKLISTS", "blacklist"));
+        inventory.setItem(15, createButton(Material.ORANGE_WOOL, "§6§lKICKS", "kick"));
 
         for (int i = 0; i < 27; i++) {
             if (inventory.getItem(i) == null) {

@@ -1,7 +1,7 @@
 package com.boes.sage.listeners;
 
 import com.boes.sage.Sage;
-import com.boes.sage.StaffCommands.MuteChatCommand;
+import com.boes.sage.commands.StaffCommands.MuteChatCommand;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;

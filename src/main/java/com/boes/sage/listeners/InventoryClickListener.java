@@ -163,7 +163,6 @@ public class InventoryClickListener implements Listener {
 
         if (title.equals("§c§lDispose Items")) {
             event.getInventory().clear();
-            event.getPlayer().sendMessage("§cAll items have been disposed!");
         }
     }
 }

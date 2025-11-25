@@ -125,7 +125,7 @@ public class ChatLogManager {
         }
     }
 
-    private void saveLogs() {
+    public void saveLogs() {
         JsonObject json = new JsonObject();
         
         for (Map.Entry<UUID, List<ChatLogEntry>> entry : chatLogs.entrySet()) {
