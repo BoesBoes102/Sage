@@ -19,6 +19,18 @@ public class PlayerJoinListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
+
+        if (plugin.getAltAccountService() != null) {
+            plugin.getAltAccountService().trackLogin(player);
+        }
+        
+        if (plugin.getOpenInventoryCommand() != null) {
+            plugin.getOpenInventoryCommand().prepareForPlayerJoin(player);
+        }
+        
+        if (plugin.getOpenEnderChestCommand() != null) {
+            plugin.getOpenEnderChestCommand().prepareForPlayerJoin(player);
+        }
         
         if (!player.hasPermission("sage.fly.keep")) {
             player.setAllowFlight(false);

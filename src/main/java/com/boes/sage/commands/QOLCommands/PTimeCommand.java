@@ -26,6 +26,7 @@ public class PTimeCommand extends BaseCommand {
     }
 
     @Subcommand("reset")
+    @Syntax("reset")
     public void onReset(Player player) {
         player.resetPlayerTime();
         plugin.getConfig().set("player-times." + player.getUniqueId(), null);
@@ -34,6 +35,7 @@ public class PTimeCommand extends BaseCommand {
     }
     @Default
     @CommandCompletion("midnight|dawn|sunrise|morning|noon|afternoon|sunset|dusk|night|0|6000|12000|18000")
+    @Syntax("<time|midnight|dawn|sunrise|morning|noon|afternoon|sunset|dusk|night>")
     public void onCommand(Player player, String timeArg) {
         timeArg = timeArg.toLowerCase();
 

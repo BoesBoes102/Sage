@@ -1,7 +1,13 @@
 package com.boes.sage.commands.QOLCommands;
 
 import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
+import co.aikar.commands.annotation.CommandAlias;
+import co.aikar.commands.annotation.CommandCompletion;
+import co.aikar.commands.annotation.CommandPermission;
+import co.aikar.commands.annotation.Default;
+import co.aikar.commands.annotation.Description;
+import co.aikar.commands.annotation.Optional;
+import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -17,7 +23,9 @@ public class ItemCommand extends BaseCommand {
     public ItemCommand(Sage plugin) {
         this.plugin = plugin;
     }
+
     @Default
+    @Syntax("<material> [amount]")
     @CommandCompletion("@materials 1|2|3|4|5|6|7|8|9")
     public void onCommand(Player player, Material material, @Optional Integer amount) {
         if (amount == null) {
@@ -42,20 +50,24 @@ public class ItemCommand extends BaseCommand {
         }
 
         int maxCanFit = (emptySlots * maxStackSize) + partialStackSpace;
+        int amountToGive = Math.min(amount, maxCanFit);
 
-        if (amount > maxCanFit) {
-            player.sendMessage("§cCannot give " + amount + " items! Only " + maxCanFit + " can fit in your inventory.");
+        if (amountToGive <= 0) {
+            player.sendMessage("§cYour inventory does not have space for any " + formatMaterialName(material) + ".");
             return;
         }
 
-        int remaining = amount;
+        int remaining = amountToGive;
         while (remaining > 0) {
             int stackAmount = Math.min(remaining, maxStackSize);
-            ItemStack item = new ItemStack(material, stackAmount);
-            player.getInventory().addItem(item);
+            player.getInventory().addItem(new ItemStack(material, stackAmount));
             remaining -= stackAmount;
         }
 
-        player.sendMessage("§aGave you " + amount + "x " + material.name().toLowerCase().replace("_", " ") + "!");
+        player.sendMessage("§aGave you " + amountToGive + "x " + formatMaterialName(material) + "!");
+    }
+
+    private String formatMaterialName(Material material) {
+        return material.name().toLowerCase().replace("_", " ");
     }
 }

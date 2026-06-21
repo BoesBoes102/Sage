@@ -6,6 +6,7 @@ import co.aikar.commands.annotation.CommandCompletion;
 import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.Default;
 import co.aikar.commands.annotation.Optional;
+import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -23,6 +24,7 @@ public class TpPosCommand extends BaseCommand {
     }
 
     @Default
+    @Syntax("<x> <y> <z> [world]")
     @CommandCompletion("~ ~ ~ @worlds")
     public void onCommand(Player player, double x, double y, double z, @Optional String worldName) {
         World world;

@@ -16,7 +16,5 @@ public class PlayerJoinSyncListener implements Listener {
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
         OfflinePlayerDataManager.syncOnPlayerJoin(event.getPlayer());
-        
-        plugin.getNotificationManager().deliverNotifications(event.getPlayer());
     }
 }

@@ -15,7 +15,6 @@ Use a permission handler like Luckperms to handle permissions for every command.
 
 | Command | Permission | Default | Description |
 |---------|-----------|---------|-------------|
-| `/sit` | `sage.sit` | true | Sit down on the ground or on blocks |
 | `/lay` | `sage.lay` | true | Lay down on the ground |
 | `/spin` | `sage.spin` | true | Spin around in a circle |
 | `/crawl` | `sage.crawl` | true | Crawl on the ground like a sneaking player |
@@ -44,10 +43,9 @@ Use a permission handler like Luckperms to handle permissions for every command.
 | `/gmsp` | `sage.gamemode.spectator` | OP | Set your gamemode to Spectator |
 | `/rules` | `sage.rules` | true | Display the server rules |
 | `/uuid [player]` | `sage.uuid` | OP | Get the UUID of yourself or another player |
-| `/sudo <player> <command>` | `sage.sudo` | OP | Execute a command as another player |
+| `/sudo <player> <true\|false> <command>` | `sage.sudo` | OP | Execute a command as another player, optionally bypassing permissions |
 | `/spawnmob <mob> [amount]` | `sage.spawnmob` | OP | Spawn one or more mobs at your location |
 | `/firstjoin` | `sage.firstjoin` | OP | Display the first join message and info |
-| `/givesittingstick` | `sage.givesittingstick` | OP | Receive a stick that allows you to sit when right-clicked |
 | `/commandspy` | `sage.commandspy` | OP | Toggle spying on all commands executed on the server |
 | `/consolespy` | `sage.consolespy` | OP | Toggle spying on console output and commands |
 | `/warn <player> [duration] <reason>` | `sage.warn` | OP | Issue a warning to a player |
@@ -88,7 +86,7 @@ Use a permission handler like Luckperms to handle permissions for every command.
 | `/tphere <player>` | `sage.tphere` | OP | Teleport a player to you |
 | `/tphereall` | `sage.tphereall` | OP | Teleport all online players to you |
 | `/tppos <x> <y> <z> [world]` | `sage.tppos` | OP | Teleport to specific coordinates |
-| `/world` | `sage.world` | OP | Open a GUI to teleport to different worlds |
+| `/world [world]` | `sage.world` | OP | List available worlds and teleport to a loaded or unloaded world by name |
 
 ---
 

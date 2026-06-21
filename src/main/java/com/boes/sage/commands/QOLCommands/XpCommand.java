@@ -19,6 +19,8 @@ public class XpCommand extends BaseCommand {
     }
 
     @Default
+    @Syntax("show [player]|reset [player]|set <player> <amount>|give <player> <amount>")
+    
     public void onDefault(CommandSender sender) {
         sender.sendMessage("§eXP Commands:");
         sender.sendMessage("§6/xp show [player] §7- Show XP");

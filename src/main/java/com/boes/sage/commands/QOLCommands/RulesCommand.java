@@ -5,6 +5,7 @@ import co.aikar.commands.annotation.CommandAlias;
 import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.Default;
 import co.aikar.commands.annotation.Description;
+import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
@@ -21,17 +22,19 @@ public class RulesCommand extends BaseCommand {
     public RulesCommand(Sage plugin) {
         this.plugin = plugin;
     }
+
     @Default
+    @Syntax("")
     public void onCommand(Player player) {
-        List<String> rules = plugin.getConfig().getStringList("rules.content");
+        List<String> rules = plugin.getRulesConfig().getStringList("rules.content");
 
         if (rules.isEmpty()) {
-            player.sendMessage("§cNo rules configured!");
+            player.sendMessage("\u00A7cNo rules configured!");
             return;
         }
 
         player.sendMessage("");
-        String title = plugin.getConfig().getString("rules.title", "§e§lSERVER RULES");
+        String title = plugin.getRulesConfig().getString("rules.title", "\u00A7e\u00A7lSERVER RULES");
         title = ChatColor.translateAlternateColorCodes('&', title);
         player.sendMessage(title);
         player.sendMessage("");

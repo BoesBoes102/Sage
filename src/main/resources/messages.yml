@@ -1,0 +1,10 @@
+messages:
+  ban-screen: "&c&lYou have been banned!\n&7Reason: &f{reason}\n&7Duration: &f{duration}"
+  blacklist-screen: "&c&lYou have been blacklisted!\n&7Reason: &f{reason}\n&7Duration: &f{duration}"
+  mute-title: "&c&lYou have been MUTED"
+  mute-message: "&c&lYou have been muted!\n&7Reason: &f{reason}\n&7Duration: &f{duration}"
+  warn-title: "&e&lYou have been WARNED"
+  warn-message: "&e&lYou have been warned!\n&7Reason: &f{reason}"
+
+broadcast:
+  prefix: "&6&l"

@@ -18,6 +18,7 @@ public class PWeatherCommand extends BaseCommand {
     }
 
     @Subcommand("reset")
+    @Syntax("reset")
     public void onReset(Player player) {
         player.resetPlayerWeather();
         plugin.getConfig().set("player-weather." + player.getUniqueId(), null);
@@ -26,6 +27,7 @@ public class PWeatherCommand extends BaseCommand {
     }
     @Default
     @CommandCompletion("clear|rain|thunder")
+    @Syntax("<clear|rain|thunder>")
     public void onCommand(Player player, String weatherArg) {
         weatherArg = weatherArg.toLowerCase();
 

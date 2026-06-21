@@ -1,14 +1,19 @@
 package com.boes.sage.commands.QOLCommands;
 
 import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
+import co.aikar.commands.annotation.CommandAlias;
+import co.aikar.commands.annotation.CommandCompletion;
+import co.aikar.commands.annotation.CommandPermission;
+import co.aikar.commands.annotation.Default;
+import co.aikar.commands.annotation.Description;
+import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
-import org.bukkit.inventory.meta.PotionMeta;
 
 @CommandAlias("potion")
 @Description("Create custom potions")
@@ -20,9 +25,11 @@ public class PotionCommand extends BaseCommand {
     public PotionCommand(Sage plugin) {
         this.plugin = plugin;
     }
+
     @Default
-    @CommandCompletion("normal|splash|lingering @potioneffecttypes 0|1|2|3|4|5 30|60|120|300|600 1|2|3|4|5|10|64")
-    public void onCommand(Player player, String type, PotionEffectType potionType, int amplifier, int duration, int amount) {
+    @CommandCompletion("normal|splash|lingering @potioneffecttypes 0|1|2|3|4|5 30|60|120|300|600|infinity 1|2|3|4|5|10|64")
+    @Syntax("<normal|splash|lingering> <effect> <amplifier> <duration> <amount>")
+    public void onCommand(Player player, String type, PotionEffectType potionType, int amplifier, String durationInput, int amount) {
         type = type.toLowerCase();
         Material potionMaterial;
 
@@ -41,7 +48,13 @@ public class PotionCommand extends BaseCommand {
             return;
         }
 
-        if (duration < 1) {
+        Integer duration = parseDurationSeconds(durationInput);
+        if (duration == null) {
+            player.sendMessage("§cDuration must be a number of seconds or 'infinity'!");
+            return;
+        }
+
+        if (duration < 1 && duration != PotionEffect.INFINITE_DURATION) {
             player.sendMessage("§cDuration must be at least 1 second!");
             return;
         }
@@ -74,15 +87,30 @@ public class PotionCommand extends BaseCommand {
             ItemStack potion = new ItemStack(potionMaterial, 1);
             PotionMeta meta = (PotionMeta) potion.getItemMeta();
 
-            int effectDuration = duration * 20;
+            int effectDuration = duration == PotionEffect.INFINITE_DURATION
+                    ? PotionEffect.INFINITE_DURATION
+                    : duration * 20;
 
             meta.addCustomEffect(new PotionEffect(potionType, effectDuration, amplifier), true);
+            meta.setDisplayName("§r" + formatPotionName(potionType.getName()) + " " + (amplifier + 1));
 
             potion.setItemMeta(meta);
             player.getInventory().addItem(potion);
         }
 
         player.sendMessage("§aGave you §e" + amount + "x §d" + type + " " + formatPotionName(potionType.getName()) + " " + (amplifier + 1) + " §a(" + formatDuration(duration) + ")");
+    }
+
+    private Integer parseDurationSeconds(String input) {
+        if (input.equalsIgnoreCase("infinity") || input.equalsIgnoreCase("infinite")) {
+            return PotionEffect.INFINITE_DURATION;
+        }
+
+        try {
+            return Integer.parseInt(input);
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     private String formatPotionName(String name) {
@@ -97,6 +125,10 @@ public class PotionCommand extends BaseCommand {
     }
 
     private String formatDuration(int seconds) {
+        if (seconds == PotionEffect.INFINITE_DURATION) {
+            return "infinity";
+        }
+
         if (seconds < 60) {
             return seconds + "s";
         } else if (seconds < 3600) {

@@ -20,6 +20,7 @@ public class EnchantmentBookCommand extends BaseCommand {
         this.plugin = plugin;
     }
     @Default
+    @Syntax("<enchantment> <level> <amount>")
     @CommandCompletion("@enchantments 1|2|3|4|5 1|10|64")
     public void onCommand(Player player, Enchantment enchantment, int level, int amount) {
         if (level < 1) {
@@ -64,7 +65,7 @@ public class EnchantmentBookCommand extends BaseCommand {
             remaining -= stackAmount;
         }
 
-        player.sendMessage("§aGave you §e" + amount + "x §b" + formatEnchantmentName(enchantment.getKey().getKey()) + " " + level + "book(s)");
+        player.sendMessage("§aGave you §e" + amount + "x §b" + formatEnchantmentName(enchantment.getKey().getKey()) + " " + level + " book(s)");
     }
 
     private String formatEnchantmentName(String name) {

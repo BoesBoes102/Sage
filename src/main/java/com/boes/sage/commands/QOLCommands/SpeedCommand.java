@@ -20,6 +20,7 @@ public class SpeedCommand extends BaseCommand {
 
     @Subcommand("reset")
     @CommandCompletion("@players")
+    @Syntax("reset [player]")
     public void onReset(CommandSender sender, String[] args) {
         Player target = null;
 
@@ -53,6 +54,7 @@ public class SpeedCommand extends BaseCommand {
 
     @Default
     @CommandCompletion("1|2|3|4|5|6|7|8|9|10 fly|walk|both @players")
+    @Syntax("<number> [fly|walk|both] [player]")
     public void onCommand(CommandSender sender, String[] args) {
         if (args.length < 1) {
             sender.sendMessage("§cUsage: /speed <number> [fly|walk|both] [player]");

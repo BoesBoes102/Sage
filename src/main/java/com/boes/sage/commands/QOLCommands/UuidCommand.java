@@ -24,6 +24,7 @@ public class UuidCommand extends BaseCommand {
 
     @Default
     @CommandCompletion("@players")
+    @Syntax("[player]")
     public void onCommand(CommandSender sender, String[] args) {
 
         Player target = null;

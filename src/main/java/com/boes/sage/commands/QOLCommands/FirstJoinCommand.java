@@ -16,6 +16,7 @@ import java.util.Date;
 public class FirstJoinCommand extends BaseCommand {
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy 'at' hh:mm:ss a");
     @Default
+    @Syntax("[player]")
     @CommandCompletion("@players")
     public void onCommand(CommandSender sender, @Optional String targetName) {
         OfflinePlayer target = null;

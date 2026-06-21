@@ -1,5 +1,5 @@
 name: Sage
-version: 1.3.7
+version: 1.5.0
 main: com.boes.sage.Sage
 api-version: 1.21
 author: Boes
@@ -46,6 +46,9 @@ permissions:
   sage.staffmode:
     description: Access to staff mode
     default: op
+  sage.freeze:
+    description: Access to /freeze command
+    default: op
   sage.potion:
     description: Access to /potion command
     default: op
@@ -57,6 +60,9 @@ permissions:
     default: op
   sage.heal:
     description: Access to /heal command
+    default: op
+  sage.feed:
+    description: Access to /feed command
     default: op
   sage.speed:
     description: Access to /speed command
@@ -118,6 +124,9 @@ permissions:
   sage.item:
     description: Access to /item command
     default: op
+  sage.itemedit:
+    description: Access to /itemedit commands
+    default: op
   sage.consolespy:
     description: Access to /consolespy command
     default: op
@@ -136,6 +145,12 @@ permissions:
   sage.ping:
     description: Access to /ping command
     default: true
+  sage.alts:
+    description: Access to /alts command
+    default: op
+  sage.altsall:
+    description: Access to /altsall command
+    default: op
   sage.clear:
     description: Access to /clear command
     default: op
@@ -190,12 +205,6 @@ permissions:
   sage.pweather:
     description: Access to /pweather command
     default: op
-  sage.sit.block:
-    description: Right-click to sit on blocks
-    default: true
-  sage.givesittingstick:
-    description: Access to /givesittingstick command
-    default: op
   sage.staffchat:
     description: Access to /staffchat command
     default: op
@@ -216,4 +225,10 @@ permissions:
     default: op
   sage.itemdb.list:
     description: Access to /itemdb list subcommand
+    default: op
+  sage.usage:
+    description: Access to /usage command
+    default: op
+  sage.refund.admin:
+    description: Access to review and send player refund snapshots
     default: op

@@ -18,6 +18,7 @@ public class PingCommand extends BaseCommand {
     }
     @Default
     @CommandCompletion("@players")
+    @Syntax("[player]")
     public void onCommand(Player sender, String[] args) {
         Player target = null;
 

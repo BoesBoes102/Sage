@@ -40,35 +40,8 @@ public class OfflinePlayerDataManager {
             chest.setContents(enderChestItems);
 
             editedInventories.put(uuid, new OfflinePlayerInventoryData(playerName, uuid, "ENDER_CHEST"));
-            
+
             return chest;
-        } catch (Exception e) {
-            e.printStackTrace();
-            return null;
-        }
-    }
-
-    public static Inventory getOfflinePlayerInventory(String playerName) {
-        UUID uuid = getPlayerUUID(playerName);
-        if (uuid == null) {
-            return null;
-        }
-
-        Player onlinePlayer = Bukkit.getPlayer(uuid);
-        if (onlinePlayer != null) {
-            Inventory inv = Bukkit.createInventory(null, 36, "§8" + playerName + "'s Inventory");
-            inv.setContents(onlinePlayer.getInventory().getContents());
-            return inv;
-        }
-
-        try {
-            ItemStack[] inventoryItems = loadInventoryFromFile(uuid);
-            Inventory inv = Bukkit.createInventory(null, 36, "§8" + playerName + "'s Inventory");
-            inv.setContents(inventoryItems);
-
-            editedInventories.put(uuid, new OfflinePlayerInventoryData(playerName, uuid, "INVENTORY"));
-            
-            return inv;
         } catch (Exception e) {
             e.printStackTrace();
             return null;
@@ -84,8 +57,6 @@ public class OfflinePlayerDataManager {
         if (onlinePlayer != null) {
             if (type.equals("ENDER_CHEST")) {
                 onlinePlayer.getEnderChest().setContents(inventory.getContents());
-            } else if (type.equals("INVENTORY")) {
-                onlinePlayer.getInventory().setContents(inventory.getContents());
             }
             return;
         }
@@ -93,8 +64,6 @@ public class OfflinePlayerDataManager {
         try {
             if (type.equals("ENDER_CHEST")) {
                 saveEnderChestToFile(uuid, inventory.getContents());
-            } else if (type.equals("INVENTORY")) {
-                saveInventoryToFile(uuid, inventory.getContents());
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -106,14 +75,19 @@ public class OfflinePlayerDataManager {
 
         if (editedInventories.containsKey(uuid)) {
             OfflinePlayerInventoryData data = editedInventories.get(uuid);
-            
+
             try {
                 if (data.type.equals("ENDER_CHEST")) {
                     ItemStack[] enderItems = loadEnderChestFromFile(uuid);
                     player.getEnderChest().setContents(enderItems);
                 } else if (data.type.equals("INVENTORY")) {
                     ItemStack[] invItems = loadInventoryFromFile(uuid);
+                    ItemStack[] armor = loadArmorFromFile(uuid);
+                    ItemStack offhand = loadOffhandFromFile(uuid);
+
                     player.getInventory().setContents(invItems);
+                    player.getInventory().setArmorContents(armor);
+                    player.getInventory().setItemInOffHand(offhand);
                 }
                 editedInventories.remove(uuid);
             } catch (Exception e) {
@@ -143,6 +117,10 @@ public class OfflinePlayerDataManager {
         return null;
     }
 
+    public static ItemStack[] loadOfflineEnderChest(UUID uuid) throws Exception {
+        return loadEnderChestFromFile(uuid);
+    }
+
     private static ItemStack[] loadEnderChestFromFile(UUID uuid) throws Exception {
         File file = getEnderChestFile(uuid);
         if (!file.exists()) {
@@ -161,7 +139,7 @@ public class OfflinePlayerDataManager {
         return items;
     }
 
-    private static ItemStack[] loadInventoryFromFile(UUID uuid) throws Exception {
+    public static ItemStack[] loadInventoryFromFile(UUID uuid) throws Exception {
         File file = getInventoryFile(uuid);
         if (!file.exists()) {
             return new ItemStack[36];
@@ -220,47 +198,98 @@ public class OfflinePlayerDataManager {
         config.save(file);
     }
 
-    private static void saveInventoryToFile(UUID uuid, ItemStack[] items) throws Exception {
-        File file = getInventoryFile(uuid);
-        FileConfiguration config = new YamlConfiguration();
+    public static void saveOfflineEnderChest(UUID uuid, ItemStack[] items) throws Exception {
+        saveEnderChestToFile(uuid, items);
 
-        for (int i = 0; i < items.length; i++) {
+        // Mark as edited
+        if (!editedInventories.containsKey(uuid)) {
+            editedInventories.put(uuid, new OfflinePlayerInventoryData(null, uuid, "ENDER_CHEST"));
+        }
+    }
+
+    public static void saveInventoryToFile(UUID uuid, ItemStack[] items) throws Exception {
+        File file = getInventoryFile(uuid);
+        FileConfiguration config;
+
+        // Load existing config to preserve armor and offhand
+        if (file.exists()) {
+            config = YamlConfiguration.loadConfiguration(file);
+        } else {
+            config = new YamlConfiguration();
+        }
+
+        // Clear old inventory items
+        for (int i = 0; i < 36; i++) {
+            config.set("items." + i, null);
+        }
+
+        // Save new inventory items
+        for (int i = 0; i < items.length && i < 36; i++) {
             if (items[i] != null && items[i].getType() != Material.AIR) {
                 config.set("items." + i, items[i]);
             }
         }
 
         config.save(file);
+
+        // Mark as edited
+        if (!editedInventories.containsKey(uuid)) {
+            editedInventories.put(uuid, new OfflinePlayerInventoryData(null, uuid, "INVENTORY"));
+        }
     }
 
     public static void saveArmorToFile(UUID uuid, ItemStack[] armor) throws Exception {
         File file = getInventoryFile(uuid);
-        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
-        if (!file.exists()) {
+        FileConfiguration config;
+
+        if (file.exists()) {
+            config = YamlConfiguration.loadConfiguration(file);
+        } else {
             config = new YamlConfiguration();
         }
 
-        for (int i = 0; i < armor.length; i++) {
+        // Clear old armor
+        for (int i = 0; i < 4; i++) {
+            config.set("armor." + i, null);
+        }
+
+        // Save new armor
+        for (int i = 0; i < armor.length && i < 4; i++) {
             if (armor[i] != null && armor[i].getType() != Material.AIR) {
                 config.set("armor." + i, armor[i]);
             }
         }
 
         config.save(file);
+
+        // Mark as edited
+        if (!editedInventories.containsKey(uuid)) {
+            editedInventories.put(uuid, new OfflinePlayerInventoryData(null, uuid, "INVENTORY"));
+        }
     }
 
     public static void saveOffhandToFile(UUID uuid, ItemStack offhand) throws Exception {
         File file = getInventoryFile(uuid);
-        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
-        if (!file.exists()) {
+        FileConfiguration config;
+
+        if (file.exists()) {
+            config = YamlConfiguration.loadConfiguration(file);
+        } else {
             config = new YamlConfiguration();
         }
+
+        config.set("offhand", null); // Clear old offhand
 
         if (offhand != null && offhand.getType() != Material.AIR) {
             config.set("offhand", offhand);
         }
 
         config.save(file);
+
+        // Mark as edited
+        if (!editedInventories.containsKey(uuid)) {
+            editedInventories.put(uuid, new OfflinePlayerInventoryData(null, uuid, "INVENTORY"));
+        }
     }
 
     private static File getEnderChestFile(UUID uuid) {

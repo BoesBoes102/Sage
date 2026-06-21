@@ -20,6 +20,7 @@ public class RepairCommand extends BaseCommand {
     }
     @Default
     @CommandCompletion("hand|all")
+    @Syntax("<hand|all>")
     public void onCommand(Player player, String mode) {
         mode = mode.toLowerCase();
 

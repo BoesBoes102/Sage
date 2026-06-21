@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 @CommandPermission("sage.fly")
 public class FlyCommand extends BaseCommand {
     @Default
+    @Syntax("[player] [on|off]")
     @CommandCompletion("@players on|off")
     public void onCommand(Player sender, @Optional String targetName, @Optional String state) {
         Player target = sender;

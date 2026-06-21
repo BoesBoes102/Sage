@@ -6,6 +6,7 @@ import co.aikar.commands.annotation.CommandCompletion;
 import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.Default;
 import co.aikar.commands.annotation.Optional;
+import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -21,6 +22,7 @@ public class TpHereAllCommand extends BaseCommand {
     }
 
     @Default
+    @Syntax("[player]")
     @CommandCompletion("@players")
     public void onCommand(Player sender, @Optional String targetName) {
         Player destination;

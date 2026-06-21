@@ -20,6 +20,7 @@ public class GamemodeSpectatorCommand extends BaseCommand {
     }
     @Default
     @CommandCompletion("@players")
+    @Syntax("[player]")
     public void onCommand(CommandSender sender, @Optional String targetName) {
         Player target = null;
         

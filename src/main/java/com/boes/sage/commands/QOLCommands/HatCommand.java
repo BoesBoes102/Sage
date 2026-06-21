@@ -18,6 +18,7 @@ public class HatCommand extends BaseCommand {
         this.plugin = plugin;
     }
     @Default
+    @Syntax("")
     public void onCommand(Player player) {
         ItemStack itemInHand = player.getInventory().getItemInMainHand();
 

@@ -19,6 +19,7 @@ public class ClearCommand extends BaseCommand {
         this.plugin = plugin;
     }
     @Default
+    @Syntax("[player]")
     @CommandCompletion("@players")
     public void onCommand(Player sender, @Optional String targetName) {
         Player target = sender;

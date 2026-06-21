@@ -17,6 +17,7 @@ public class DisposeCommand extends BaseCommand {
         this.plugin = plugin;
     }
     @Default
+    @Syntax("")
     public void onCommand(Player player) {
         DisposeGUI gui = new DisposeGUI(player);
         gui.open();

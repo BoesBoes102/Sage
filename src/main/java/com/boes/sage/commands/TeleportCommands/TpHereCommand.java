@@ -5,6 +5,7 @@ import co.aikar.commands.annotation.CommandAlias;
 import co.aikar.commands.annotation.CommandCompletion;
 import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.Default;
+import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
@@ -21,6 +22,7 @@ public class TpHereCommand extends BaseCommand {
     }
 
     @Default
+    @Syntax("<player>")
     @CommandCompletion("@players")
     public void onCommand(Player player, String targetName) {
         Player target = Bukkit.getPlayer(targetName);

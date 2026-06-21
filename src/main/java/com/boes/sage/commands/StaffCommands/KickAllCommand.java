@@ -5,6 +5,7 @@ import co.aikar.commands.annotation.CommandAlias;
 import co.aikar.commands.annotation.CommandPermission;
 import co.aikar.commands.annotation.Default;
 import co.aikar.commands.annotation.Optional;
+import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -23,6 +24,7 @@ public class KickAllCommand extends BaseCommand {
     }
 
     @Default
+    @Syntax("[reason]")
     public void onCommand(Player sender, @Optional String[] reasonArgs) {
         String reason = (reasonArgs != null && reasonArgs.length > 0)
                 ? String.join(" ", reasonArgs)

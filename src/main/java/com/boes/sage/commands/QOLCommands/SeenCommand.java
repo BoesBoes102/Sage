@@ -17,6 +17,7 @@ public class SeenCommand extends BaseCommand {
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy 'at' HH:mm:ss");
     @Default
     @CommandCompletion("@players")
+    @Syntax("<player>")
     public void onCommand(org.bukkit.command.CommandSender sender, String playerName) {
         Player onlinePlayer = Bukkit.getPlayer(playerName);
         if (onlinePlayer != null) {

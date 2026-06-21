@@ -18,6 +18,7 @@ public class RespawnCommand extends BaseCommand {
     }
     @Default
     @CommandCompletion("@players")
+    @Syntax("[player]")
     public void onCommand(org.bukkit.command.CommandSender sender, String[] args) {
         Player target = null;
 
