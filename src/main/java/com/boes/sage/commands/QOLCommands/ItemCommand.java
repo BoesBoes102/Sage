@@ -1,22 +1,14 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandCompletion;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Description;
-import co.aikar.commands.annotation.Optional;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("item|i")
-@Description("Give yourself an item")
-@CommandPermission("sage.item")
-public class ItemCommand extends BaseCommand {
+public class ItemCommand {
 
     private final Sage plugin;
 
@@ -24,10 +16,14 @@ public class ItemCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Default
-    @Syntax("<material> [amount]")
-    @CommandCompletion("@materials 1|2|3|4|5|6|7|8|9")
-    public void onCommand(Player player, Material material, @Optional Integer amount) {
+    @Command("item <material> [amount]")
+    @Command("i <material> [amount]")
+    @Permission("sage.item")
+    public void onCommand(
+            Player player,
+            @Argument(value = "material", suggestions = "materials") Material material,
+            @Argument(value = "amount", parserName = "positiveAmount") Integer amount
+    ) {
         if (amount == null) {
             amount = 1;
         }

@@ -1,27 +1,28 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("fly")
-@Description("Enable or disable flight for yourself or another player")
-@CommandPermission("sage.fly")
-public class FlyCommand extends BaseCommand {
-    @Default
-    @Syntax("[player] [on|off]")
-    @CommandCompletion("@players on|off")
-    public void onCommand(Player sender, @Optional String targetName, @Optional String state) {
+public class FlyCommand {
+    @Command("fly [player] [state]")
+    @Permission("sage.fly")
+    public void onCommand(
+            Player sender,
+            @Argument(value = "player", suggestions = "players") String targetName,
+            @Argument("state") String state
+    ) {
         Player target = sender;
-        
+
         if (targetName != null && !isStateValue(targetName)) {
             target = Bukkit.getPlayer(targetName);
             if (target == null) {
                 sender.sendMessage("§cPlayer not found!");
                 return;
             }
-            
+
             if (!target.equals(sender) && !sender.hasPermission("sage.staff.admin")) {
                 sender.sendMessage("§cYou don't have permission to change other players' flight status!");
                 return;
@@ -29,7 +30,7 @@ public class FlyCommand extends BaseCommand {
         } else if (targetName != null && isStateValue(targetName)) {
             state = targetName;
         }
-        
+
         if (state == null) {
             boolean newState = !target.getAllowFlight();
             setFlightState(target, newState, sender);
@@ -50,7 +51,7 @@ public class FlyCommand extends BaseCommand {
     }
 
     private boolean isStateValue(String value) {
-        return value.equalsIgnoreCase("on") || value.equalsIgnoreCase("off") || 
+        return value.equalsIgnoreCase("on") || value.equalsIgnoreCase("off") ||
                value.equalsIgnoreCase("true") || value.equalsIgnoreCase("false");
     }
 

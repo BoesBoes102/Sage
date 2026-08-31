@@ -1,25 +1,21 @@
 package com.boes.sage.features.staffmode.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import com.boes.sage.features.staffmode.StaffModeService;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("staffmode|h")
-@CommandPermission("sage.staffmode")
-public class StaffModeCommand extends BaseCommand {
+public class StaffModeCommand {
     private final Sage plugin;
 
     public StaffModeCommand(Sage plugin) {
         this.plugin = plugin;
     }
 
-    @Default
-    @Syntax("")
+    @Command("staffmode")
+    @Command("h")
+    @Permission("sage.staffmode")
     public void onCommand(Player player) {
         StaffModeService manager = plugin.getStaffModeService();
 

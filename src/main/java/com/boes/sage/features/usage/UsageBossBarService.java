@@ -1,9 +1,7 @@
 package com.boes.sage.features.usage;
 
 import com.boes.sage.Sage;
-import com.boes.sage.Utils.JsonStorageManager;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.boes.sage.Utils.DatabaseManager;
 import org.bukkit.Bukkit;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
@@ -11,7 +9,10 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.io.File;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
@@ -26,25 +27,25 @@ public class UsageBossBarService {
     private final Sage plugin;
     private final Set<UUID> enabledPlayers;
     private final Map<UUID, BossBar> playerBossBars;
-    private final JsonStorageManager storageManager;
+    private final DatabaseManager databaseManager;
     private BukkitTask updateTask;
 
     public UsageBossBarService(Sage plugin) {
         this.plugin = plugin;
         this.enabledPlayers = new HashSet<>();
         this.playerBossBars = new HashMap<>();
-        this.storageManager = new JsonStorageManager(new File(plugin.getDataFolder(), "usage-bossbar.json"));
+        this.databaseManager = plugin.getDatabaseManager();
         loadData();
         startUpdateTask();
     }
 
     private void loadData() {
-        JsonObject json = storageManager.load();
-        
-        if (json.has("enabled-players")) {
-            for (int i = 0; i < json.getAsJsonArray("enabled-players").size(); i++) {
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT uuid FROM usage_bossbar_enabled");
+             ResultSet resultSet = statement.executeQuery()) {
+            while (resultSet.next()) {
                 try {
-                    UUID uuid = UUID.fromString(json.getAsJsonArray("enabled-players").get(i).getAsString());
+                    UUID uuid = UUID.fromString(resultSet.getString("uuid"));
                     enabledPlayers.add(uuid);
                     Player player = Bukkit.getPlayer(uuid);
                     if (player != null) {
@@ -53,17 +54,35 @@ public class UsageBossBarService {
                 } catch (IllegalArgumentException ignored) {
                 }
             }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to load usage boss bar data", e);
         }
     }
 
-    private void saveData() {
-        JsonObject json = storageManager.load();
-        JsonArray playersArray = new JsonArray();
-        
-        enabledPlayers.forEach(uuid -> playersArray.add(uuid.toString()));
-        
-        json.add("enabled-players", playersArray);
-        storageManager.save(json);
+    private void saveEnabled(UUID uuid) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try (Connection connection = databaseManager.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(
+                         "INSERT OR IGNORE INTO usage_bossbar_enabled (uuid) VALUES (?)")) {
+                statement.setString(1, uuid.toString());
+                statement.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().severe("Failed to save usage boss bar state for " + uuid + ": " + e.getMessage());
+            }
+        });
+    }
+
+    private void removeEnabled(UUID uuid) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try (Connection connection = databaseManager.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(
+                         "DELETE FROM usage_bossbar_enabled WHERE uuid = ?")) {
+                statement.setString(1, uuid.toString());
+                statement.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().severe("Failed to remove usage boss bar state for " + uuid + ": " + e.getMessage());
+            }
+        });
     }
 
     private void startUpdateTask() {
@@ -127,7 +146,7 @@ public class UsageBossBarService {
         playerBossBars.put(player.getUniqueId(), bossBar);
         
         enabledPlayers.add(player.getUniqueId());
-        saveData();
+        saveEnabled(player.getUniqueId());
     }
 
     public void removeBossBar(Player player) {
@@ -136,9 +155,17 @@ public class UsageBossBarService {
         if (bossBar != null) {
             bossBar.removePlayer(player);
         }
-        
+
         enabledPlayers.remove(uuid);
-        saveData();
+        removeEnabled(uuid);
+    }
+
+    public void disconnectBossBar(Player player) {
+        UUID uuid = player.getUniqueId();
+        BossBar bossBar = playerBossBars.remove(uuid);
+        if (bossBar != null) {
+            bossBar.removePlayer(player);
+        }
     }
 
     public void toggleBossBar(Player player) {

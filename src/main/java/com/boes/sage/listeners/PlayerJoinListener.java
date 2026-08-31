@@ -20,29 +20,17 @@ public class PlayerJoinListener implements Listener {
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player player = event.getPlayer();
 
-        if (plugin.getAltAccountService() != null) {
-            plugin.getAltAccountService().trackLogin(player);
-        }
-        
-        if (plugin.getOpenInventoryCommand() != null) {
-            plugin.getOpenInventoryCommand().prepareForPlayerJoin(player);
-        }
-        
-        if (plugin.getOpenEnderChestCommand() != null) {
-            plugin.getOpenEnderChestCommand().prepareForPlayerJoin(player);
-        }
-        
         if (!player.hasPermission("sage.fly.keep")) {
             player.setAllowFlight(false);
             player.setFlying(false);
         }
 
-        long playerTime = plugin.getConfig().getLong("player-times." + player.getUniqueId().toString(), -1);
-        if (playerTime >= 0) {
+        Long playerTime = plugin.getPlayerRuntimeDataManager().getPlayerTime(player.getUniqueId());
+        if (playerTime != null && playerTime >= 0) {
             player.setPlayerTime(playerTime, false);
         }
 
-        String playerWeather = plugin.getConfig().getString("player-weather." + player.getUniqueId().toString());
+        String playerWeather = plugin.getPlayerRuntimeDataManager().getPlayerWeather(player.getUniqueId());
         if (playerWeather != null) {
             switch (playerWeather.toLowerCase()) {
                 case "clear":
@@ -57,7 +45,7 @@ public class PlayerJoinListener implements Listener {
             }
         }
 
-        String pendingTeleport = plugin.getConfig().getString("pending-teleports." + player.getUniqueId().toString());
+        String pendingTeleport = plugin.getPlayerRuntimeDataManager().getPendingTeleport(player.getUniqueId());
         if (pendingTeleport != null) {
             String[] parts = pendingTeleport.split(";");
             if (parts.length == 6) {
@@ -78,8 +66,7 @@ public class PlayerJoinListener implements Listener {
                 }
             }
 
-            plugin.getConfig().set("pending-teleports." + player.getUniqueId().toString(), null);
-            plugin.saveConfig();
+            plugin.getPlayerRuntimeDataManager().clearPendingTeleport(player.getUniqueId());
         }
     }
 }

@@ -1,18 +1,14 @@
 package com.boes.sage.features.punishment.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandCompletion;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotation.specifier.Greedy;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("kick")
-@CommandPermission("sage.kick")
-public class KickCommand extends BaseCommand {
+public class KickCommand {
 
     private final Sage plugin;
 
@@ -20,19 +16,21 @@ public class KickCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Default
-    @Syntax("<player> <reason>")
-    @CommandCompletion("@players")
-    public void onCommand(Player player, String targetName, String[] reason) {
+    @Command("kick <player> <reason>")
+    @Permission("sage.kick")
+    public void onCommand(
+            Player issuer,
+            @Argument(value = "player", suggestions = "players") String targetName,
+            @Argument("reason") String reason
+    ) {
         Player target = Bukkit.getPlayer(targetName);
 
         if (target == null) {
-            player.sendMessage("§cPlayer is not online!");
+            issuer.sendMessage("§cPlayer is not online!");
             return;
         }
 
-        String reasonText = String.join(" ", reason);
-        plugin.getPunishmentService().kick(target, reasonText, player);
-        player.sendMessage("§aKicked " + target.getName() + " for: " + reasonText);
+        plugin.getPunishmentService().kick(target, reason, issuer);
+        issuer.sendMessage("§aKicked " + target.getName() + " for: " + reason);
     }
 }

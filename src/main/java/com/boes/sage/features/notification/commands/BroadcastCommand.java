@@ -1,18 +1,16 @@
 package com.boes.sage.features.notification.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotation.specifier.Greedy;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("broadcast")
-@CommandPermission("sage.broadcast")
-public class BroadcastCommand extends BaseCommand {
+public class BroadcastCommand {
 
     private final Sage plugin;
 
@@ -20,15 +18,12 @@ public class BroadcastCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Default
-    @Syntax("<message>")
-    public void onCommand(org.bukkit.command.CommandSender sender, String[] messageArgs) {
-        if (messageArgs.length == 0) {
-            sender.sendMessage("§cUsage: /broadcast <message>");
-            return;
-        }
-
-        String message = String.join(" ", messageArgs);
+    @Command("broadcast <message>")
+    @Permission("sage.broadcast")
+    public void onCommand(
+            CommandSender sender,
+            @Argument(value = "message", suggestions = "none") @Greedy String message
+    ) {
         String processedMessage = ChatColor.translateAlternateColorCodes('&', message);
 
         for (Player player : Bukkit.getOnlinePlayers()) {

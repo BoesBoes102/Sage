@@ -1,20 +1,15 @@
 package com.boes.sage.commands.TeleportCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandCompletion;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("tpt")
-@CommandPermission("sage.tpt")
-public class TeleportToPlayerCommand extends BaseCommand {
+public class TeleportToPlayerCommand {
 
     private final Sage plugin;
 
@@ -22,38 +17,45 @@ public class TeleportToPlayerCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Default
-    @Syntax("<player>")
-    @CommandCompletion("@players")
-    public void onCommand(Player player, String targetName) {
+    @Command("tpt <player>")
+    @Permission("sage.tpt")
+    public void onCommand(Player issuer, @Argument(value = "player", suggestions = "players") String targetName) {
         Player target = Bukkit.getPlayer(targetName);
 
         if (target != null) {
-            if (target.equals(player)) {
-                player.sendMessage("§cYou cannot teleport to yourself!");
+            if (target.equals(issuer)) {
+                issuer.sendMessage("§cYou cannot teleport to yourself!");
                 return;
             }
 
-            player.teleport(target.getLocation());
-            player.sendMessage("§aTeleported to §e" + target.getName() + "§a!");
+            issuer.teleport(target.getLocation());
+            issuer.sendMessage("§aTeleported to §e" + target.getName() + "§a!");
         } else {
-            OfflinePlayer offlineTarget = Bukkit.getOfflinePlayer(targetName);
-            
-            if (!offlineTarget.hasPlayedBefore()) {
-                player.sendMessage("§cPlayer has never joined!");
-                return;
-            }
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                OfflinePlayer offlineTarget = Bukkit.getOfflinePlayer(targetName);
 
-            Location lastLocation = offlineTarget.getPlayer() != null ? 
-                offlineTarget.getPlayer().getLocation() : 
-                offlineTarget.getBedSpawnLocation();
-            
-            if (lastLocation == null) {
-                lastLocation = Bukkit.getWorlds().getFirst().getSpawnLocation();
-            }
-            
-            player.teleport(lastLocation);
-            player.sendMessage("§aTeleported to §e" + offlineTarget.getName() + "§a's last known location!");
+                if (!offlineTarget.hasPlayedBefore()) {
+                    Bukkit.getScheduler().runTask(plugin, () -> issuer.sendMessage("§cPlayer has never joined!"));
+                    return;
+                }
+
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (!issuer.isOnline()) {
+                        return;
+                    }
+
+                    Location lastLocation = offlineTarget.getPlayer() != null ?
+                        offlineTarget.getPlayer().getLocation() :
+                        offlineTarget.getBedSpawnLocation();
+
+                    if (lastLocation == null) {
+                        lastLocation = Bukkit.getWorlds().getFirst().getSpawnLocation();
+                    }
+
+                    issuer.teleport(lastLocation);
+                    issuer.sendMessage("§aTeleported to §e" + offlineTarget.getName() + "§a's last known location!");
+                });
+            });
         }
     }
 }

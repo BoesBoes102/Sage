@@ -1,29 +1,29 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("creative|gmc|gm2")
-@Description("Set gamemode to Creative")
-@CommandPermission("sage.gamemode.creative")
-public class GamemodeCreativeCommand extends BaseCommand {
+public class GamemodeCreativeCommand {
 
     private final Sage plugin;
 
     public GamemodeCreativeCommand(Sage plugin) {
         this.plugin = plugin;
     }
-    @Default
-    @CommandCompletion("@players")
-    @Syntax("[player]")
-    public void onCommand(CommandSender sender, @Optional String targetName) {
+
+    @Command("creative [player]")
+    @Command("gmc [player]")
+    @Command("gm2 [player]")
+    @Permission("sage.gamemode.creative")
+    public void onCommand(CommandSender sender, @Argument(value = "player", suggestions = "players") String targetName) {
         Player target = null;
-        
+
         if (targetName != null) {
             target = Bukkit.getPlayer(targetName);
             if (target == null) {

@@ -1,15 +1,13 @@
 package com.boes.sage.features.vanish.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
 import com.boes.sage.Sage;
 import com.boes.sage.features.vanish.VanishService;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("vanish")
-@Description("Toggle vanish mode")
-@CommandPermission("sage.vanish")
-public class VanishCommand extends BaseCommand {
+public class VanishCommand {
 
     private final Sage plugin;
 
@@ -17,10 +15,12 @@ public class VanishCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Default
-    @CommandCompletion("@players")
-    @Syntax("[player]")
-    public void onCommand(Player player, @Optional Player target) {
+    @Command("vanish [target]")
+    @Permission("sage.vanish")
+    public void onCommand(
+            Player player,
+            @Argument("target") Player target
+    ) {
         if (target == null) {
             target = player;
         } else if (!target.equals(player) && !player.hasPermission("sage.staff.admin")) {

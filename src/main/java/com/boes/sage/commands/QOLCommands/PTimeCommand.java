@@ -1,14 +1,12 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
 import com.boes.sage.Sage;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("ptime")
-@Description("Set personal time of day")
-@CommandPermission("sage.ptime")
-public class PTimeCommand extends BaseCommand {
+public class PTimeCommand {
 
     private final Sage plugin;
     private static final long TIME_MIDNIGHT = 18000;
@@ -25,23 +23,28 @@ public class PTimeCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Subcommand("reset")
-    @Syntax("reset")
+    @Command("ptime reset")
+    @Permission("sage.ptime")
     public void onReset(Player player) {
         player.resetPlayerTime();
-        plugin.getConfig().set("player-times." + player.getUniqueId(), null);
-        plugin.saveConfig();
+        plugin.getPlayerRuntimeDataManager().clearPlayerTime(player.getUniqueId());
         player.sendMessage("§aPlayer time reset!");
     }
-    @Default
-    @CommandCompletion("midnight|dawn|sunrise|morning|noon|afternoon|sunset|dusk|night|0|6000|12000|18000")
-    @Syntax("<time|midnight|dawn|sunrise|morning|noon|afternoon|sunset|dusk|night>")
-    public void onCommand(Player player, String timeArg) {
+
+    @Command("ptime <time>")
+    @Permission("sage.ptime")
+    public void onCommand(Player player, @Argument(value = "time", suggestions = "ptimeOptions") String timeArg) {
         timeArg = timeArg.toLowerCase();
+
+        if (timeArg.equals("reset")) {
+            onReset(player);
+            return;
+        }
 
         long time;
         try {
             switch (timeArg) {
+                case "day" -> time = TIME_MORNING;
                 case "midnight" -> time = TIME_MIDNIGHT;
                 case "dawn" -> time = TIME_DAWN;
                 case "sunrise" -> time = TIME_SUNRISE;
@@ -61,14 +64,13 @@ public class PTimeCommand extends BaseCommand {
             }
         } catch (NumberFormatException e) {
             player.sendMessage("§cInvalid time format!");
-            player.sendMessage("§7Times: midnight, dawn, sunrise, morning, noon, afternoon, sunset, dusk, night");
-            player.sendMessage("§7Or use a number (0-23999)");
+            player.sendMessage("§7Times: day, midnight, dawn, sunrise, morning, noon, afternoon, sunset, dusk, night");
+            player.sendMessage("§7Or use a number (0-23999), or 'reset'");
             return;
         }
 
         player.setPlayerTime(time, false);
-        plugin.getConfig().set("player-times." + player.getUniqueId(), time);
-        plugin.saveConfig();
+        plugin.getPlayerRuntimeDataManager().setPlayerTime(player.getUniqueId(), time);
 
         player.sendMessage("§aPlayer time set to " + timeArg + "!");
     }

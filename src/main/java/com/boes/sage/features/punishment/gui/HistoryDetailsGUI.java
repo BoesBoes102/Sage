@@ -31,13 +31,18 @@ public class HistoryDetailsGUI {
     }
 
     public void open() {
-        setupButtons();
-        viewer.openInventory(inventory);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            List<PunishmentHistory> history = plugin.getPunishmentService().getHistoryByType(target.getUniqueId(), punishmentType);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                setupButtons(history);
+                if (viewer.isOnline()) {
+                    viewer.openInventory(inventory);
+                }
+            });
+        });
     }
 
-    private void setupButtons() {
-        List<PunishmentHistory> history = plugin.getPunishmentService().getHistoryByType(target.getUniqueId(), punishmentType);
-
+    private void setupButtons(List<PunishmentHistory> history) {
         int slot = 10;
         for (PunishmentHistory h : history) {
             if (slot >= 54) break;

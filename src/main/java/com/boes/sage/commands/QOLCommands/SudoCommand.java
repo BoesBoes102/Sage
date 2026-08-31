@@ -1,72 +1,77 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandCompletion;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Description;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.permissions.PermissionAttachment;
+import org.incendo.cloud.annotation.specifier.Greedy;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("sudo")
-@Description("Force a player to execute a command")
-@CommandPermission("sage.sudo")
-public class SudoCommand extends BaseCommand {
+import java.util.List;
+
+public class SudoCommand {
+
+    private final Sage plugin;
 
     public SudoCommand(Sage plugin) {
+        this.plugin = plugin;
     }
 
-    @Default
-    @CommandCompletion("@players true|false|chat ")
-    @Syntax("<player> <true|false|chat> <command/message...>")
-    public void onCommand(CommandSender sender, String[] args) {
-        if (args.length < 3) {
-            sender.sendMessage(ChatColor.RED + "Usage: /sudo <player> <true|false|chat> <command/message>");
-            return;
-        }
-
-        Player target = Bukkit.getPlayer(args[0]);
-        if (target == null) {
-            sender.sendMessage(ChatColor.RED + "You must specify a valid player.");
-            return;
-        }
-
-        String mode = args[1].toLowerCase();
+    @Command("sudo <target> <mode> <command>")
+    @Permission("sage.sudo")
+    public void onCommand(
+            CommandSender sender,
+            @Argument(value = "target", suggestions = "sudoTargets") String targetArg,
+            @Argument(value = "mode", suggestions = "sudoModes") String mode,
+            @Argument(value = "command", suggestions = "none") @Greedy String input
+    ) {
+        mode = mode.toLowerCase();
         if (!mode.equals("true") && !mode.equals("false") && !mode.equals("chat")) {
             sender.sendMessage(ChatColor.RED + "Second argument must be true, false, or chat.");
             return;
         }
 
-        String[] inputArgs = new String[args.length - 2];
-        System.arraycopy(args, 2, inputArgs, 0, args.length - 2);
-        String input = String.join(" ", inputArgs);
-
-        if (mode.equals("chat")) {
-            target.chat(input);
-            sender.sendMessage(ChatColor.GREEN + "Forced " + target.getName() + " to chat: " + ChatColor.WHITE + input);
-            return;
+        List<? extends Player> targets;
+        if (targetArg.equalsIgnoreCase("@a")) {
+            targets = List.copyOf(Bukkit.getOnlinePlayers());
+            if (targets.isEmpty()) {
+                sender.sendMessage(ChatColor.RED + "No players are online.");
+                return;
+            }
+        } else {
+            Player target = Bukkit.getPlayer(targetArg);
+            if (target == null) {
+                sender.sendMessage(ChatColor.RED + "You must specify a valid player.");
+                return;
+            }
+            targets = List.of(target);
         }
 
-        boolean withOp = mode.equals("true");
-        String commandToExecute = input.startsWith("/") ? input.substring(1) : input;
-        boolean elevatePermissions = withOp && !target.isOp();
-        boolean wasOp = target.isOp();
-
-        try {
-            if (elevatePermissions) {
-                target.setOp(true);
+        for (Player target : targets) {
+            if (mode.equals("chat")) {
+                target.chat(input);
+                sender.sendMessage(ChatColor.GREEN + "Forced " + target.getName() + " to chat: " + ChatColor.WHITE + input);
+                continue;
             }
 
-            Bukkit.dispatchCommand(target, commandToExecute);
-            sender.sendMessage(ChatColor.GREEN + "Forced " + target.getName() + " to execute: " + ChatColor.WHITE + "/" + commandToExecute);
-        } finally {
-            if (elevatePermissions) {
-                target.setOp(wasOp);
+            boolean withOp = mode.equals("true");
+            String commandToExecute = input.startsWith("/") ? input.substring(1) : input;
+            PermissionAttachment bypassAttachment = withOp ? target.addAttachment(plugin) : null;
+            if (bypassAttachment != null) {
+                bypassAttachment.setPermission("*", true);
+            }
+
+            try {
+                Bukkit.dispatchCommand(target, commandToExecute);
+                sender.sendMessage(ChatColor.GREEN + "Forced " + target.getName() + " to execute: " + ChatColor.WHITE + "/" + commandToExecute);
+            } finally {
+                if (bypassAttachment != null) {
+                    target.removeAttachment(bypassAttachment);
+                }
             }
         }
     }

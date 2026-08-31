@@ -47,7 +47,6 @@ Use a permission handler like Luckperms to handle permissions for every command.
 | `/spawnmob <mob> [amount]` | `sage.spawnmob` | OP | Spawn one or more mobs at your location |
 | `/firstjoin` | `sage.firstjoin` | OP | Display the first join message and info |
 | `/commandspy` | `sage.commandspy` | OP | Toggle spying on all commands executed on the server |
-| `/consolespy` | `sage.consolespy` | OP | Toggle spying on console output and commands |
 | `/warn <player> [duration] <reason>` | `sage.warn` | OP | Issue a warning to a player |
 | `/mute <player> [duration] <reason>` | `sage.mute` | OP | Mute a player, preventing them from chatting |
 | `/ban <player> [duration] <reason>` | `sage.ban` | OP | Ban a player from the server |

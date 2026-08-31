@@ -11,7 +11,7 @@ import org.bukkit.inventory.meta.ItemMeta;
 public class KitGuiListener implements Listener {
     @EventHandler
     public void onInventoryClick(InventoryClickEvent event) {
-        if (!event.getView().getTitle().equals("Â§8Available Kits")) {
+        if (!event.getView().getTitle().equals("§8Available Kits")) {
             return;
         }
 
@@ -31,7 +31,7 @@ public class KitGuiListener implements Listener {
             return;
         }
 
-        String kitName = meta.getDisplayName().replace("Â§aÂ§l", "");
+        String kitName = meta.getDisplayName().replace("§a§l", "");
         player.performCommand("kit claim " + kitName);
         player.closeInventory();
     }

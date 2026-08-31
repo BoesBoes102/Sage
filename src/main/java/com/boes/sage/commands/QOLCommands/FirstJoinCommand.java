@@ -1,51 +1,60 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
+import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 
-@CommandAlias("firstjoin")
-@Description("Check when a player first joined")
-@CommandPermission("sage.firstjoin")
-public class FirstJoinCommand extends BaseCommand {
+public class FirstJoinCommand {
+    private final Sage plugin;
     private final SimpleDateFormat dateFormat = new SimpleDateFormat("MMM dd, yyyy 'at' hh:mm:ss a");
-    @Default
-    @Syntax("[player]")
-    @CommandCompletion("@players")
-    public void onCommand(CommandSender sender, @Optional String targetName) {
-        OfflinePlayer target = null;
-        String displayName = null;
-        
+
+    public FirstJoinCommand(Sage plugin) {
+        this.plugin = plugin;
+    }
+
+    @Command("firstjoin [player]")
+    @Permission("sage.firstjoin")
+    public void onCommand(CommandSender sender, @Argument(value = "player", suggestions = "players") String targetName) {
         if (targetName != null) {
             Player onlinePlayer = Bukkit.getPlayer(targetName);
             if (onlinePlayer != null) {
-                target = onlinePlayer;
-                displayName = onlinePlayer.getName();
-            } else {
-                target = Bukkit.getOfflinePlayer(targetName);
-                displayName = target.getName();
-                if (target.getName() == null || (!target.hasPlayedBefore() && !target.isOnline())) {
-                    sender.sendMessage("§cPlayer not found!");
-                    return;
-                }
-            }
-        } else {
-            if (!(sender instanceof Player)) {
-                sender.sendMessage("§cYou must specify a player from console!");
+                reportFirstJoin(sender, onlinePlayer, onlinePlayer.getName());
                 return;
             }
-            target = (OfflinePlayer) sender;
-            displayName = ((Player) sender).getName();
+
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
+                String displayName = target.getName();
+                if (displayName == null || (!target.hasPlayedBefore() && !target.isOnline())) {
+                    Bukkit.getScheduler().runTask(plugin, () -> sender.sendMessage("§cPlayer not found!"));
+                    return;
+                }
+
+                Bukkit.getScheduler().runTask(plugin, () -> reportFirstJoin(sender, target, displayName));
+            });
+            return;
         }
 
+        if (!(sender instanceof Player)) {
+            sender.sendMessage("§cYou must specify a player from console!");
+            return;
+        }
+        OfflinePlayer target = (OfflinePlayer) sender;
+        String displayName = ((Player) sender).getName();
+        reportFirstJoin(sender, target, displayName);
+    }
+
+    private void reportFirstJoin(CommandSender sender, OfflinePlayer target, String displayName) {
         long firstPlayed = target.getFirstPlayed();
-        
+
         if (firstPlayed == 0) {
             sender.sendMessage("§cNo first join data available for this player!");
             return;
@@ -53,7 +62,7 @@ public class FirstJoinCommand extends BaseCommand {
 
         Date firstJoinDate = new Date(firstPlayed);
         String formattedDate = dateFormat.format(firstJoinDate);
-        
+
         long timeSince = System.currentTimeMillis() - firstPlayed;
         String timeSinceStr = formatTimeSince(timeSince);
 

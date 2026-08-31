@@ -1,12 +1,5 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandCompletion;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Description;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -14,11 +7,11 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.PotionMeta;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("potion")
-@Description("Create custom potions")
-@CommandPermission("sage.potion")
-public class PotionCommand extends BaseCommand {
+public class PotionCommand {
 
     private final Sage plugin;
 
@@ -26,10 +19,16 @@ public class PotionCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Default
-    @CommandCompletion("normal|splash|lingering @potioneffecttypes 0|1|2|3|4|5 30|60|120|300|600|infinity 1|2|3|4|5|10|64")
-    @Syntax("<normal|splash|lingering> <effect> <amplifier> <duration> <amount>")
-    public void onCommand(Player player, String type, PotionEffectType potionType, int amplifier, String durationInput, int amount) {
+    @Command("potion <type> <effect> <amplifier> <duration> <amount>")
+    @Permission("sage.potion")
+    public void onCommand(
+            Player player,
+            @Argument(value = "type", suggestions = "potiontypes") String type,
+            @Argument(value = "effect", suggestions = "potioneffecttypes") PotionEffectType potionType,
+            @Argument(value = "amplifier", suggestions = "amplifierPlaceholder") int amplifier,
+            @Argument(value = "duration", suggestions = "durationPlaceholder") String durationInput,
+            @Argument(value = "amount", suggestions = "amountPlaceholder") int amount
+    ) {
         type = type.toLowerCase();
         Material potionMaterial;
 
@@ -92,13 +91,23 @@ public class PotionCommand extends BaseCommand {
                     : duration * 20;
 
             meta.addCustomEffect(new PotionEffect(potionType, effectDuration, amplifier), true);
-            meta.setDisplayName("§r" + formatPotionName(potionType.getName()) + " " + (amplifier + 1));
+            meta.setDisplayName("§r" + buildPotionName(type, potionType));
 
             potion.setItemMeta(meta);
             player.getInventory().addItem(potion);
         }
 
-        player.sendMessage("§aGave you §e" + amount + "x §d" + type + " " + formatPotionName(potionType.getName()) + " " + (amplifier + 1) + " §a(" + formatDuration(duration) + ")");
+        player.sendMessage("§aGave you §e" + amount + "x §d" + buildPotionName(type, potionType) + " §a(" + formatDuration(duration) + ")");
+    }
+
+    private String buildPotionName(String type, PotionEffectType potionType) {
+        String prefix = switch (type) {
+            case "splash" -> "Splash Potion of ";
+            case "lingering" -> "Lingering Potion of ";
+            default -> "Potion of ";
+        };
+
+        return prefix + formatPotionName(potionType.getKey().getKey());
     }
 
     private Integer parseDurationSeconds(String input) {

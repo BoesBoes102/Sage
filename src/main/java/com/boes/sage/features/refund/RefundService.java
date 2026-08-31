@@ -32,8 +32,8 @@ public class RefundService {
             dataFolder.mkdirs();
         }
 
-        cleanupExpiredRefunds();
-        Bukkit.getScheduler().runTaskTimer(plugin, (Runnable) this::cleanupExpiredRefunds, 20L * 60L * 30L, 20L * 60L * 30L);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, (Runnable) this::cleanupExpiredRefunds);
+        Bukkit.getScheduler().runTaskTimerAsynchronously(plugin, (Runnable) this::cleanupExpiredRefunds, 20L * 60L * 30L, 20L * 60L * 30L);
     }
 
     public RefundSnapshot saveSnapshot(Player player, String saveReason, String deathReason, Location location) {
@@ -57,7 +57,7 @@ public class RefundService {
                 false
         );
 
-        saveSnapshot(snapshot);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> saveSnapshot(snapshot));
         return snapshot;
     }
 

@@ -4,17 +4,8 @@
 # - rules.yml
 # - messages.yml
 
-# Runtime-managed player data examples:
-# player-times: {}
-# player-weather: {}
-# pending-teleports: {}
-
-freeze:
-  message: "&cYou are currently frozen."
-  title: "&c&lFROZEN"
-  subtitle: "&7You cannot move or use commands."
-  title-refresh-ticks: 40
-  title-stay-ticks: 80
+# Runtime-managed player data (player times, player weather, pending
+# teleports, offline inventory data) is stored in sage.db (SQLite).
 
 notifications:
   bossbar:
@@ -44,4 +35,6 @@ commands:
   respawn:
     enabled: true
   rules:
+    enabled: true
+  kit:
     enabled: true

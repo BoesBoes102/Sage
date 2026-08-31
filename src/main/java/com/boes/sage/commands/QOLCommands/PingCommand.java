@@ -1,29 +1,27 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("ping")
-@Description("Check your ping or another player's ping")
-@CommandPermission("sage.ping")
-public class PingCommand extends BaseCommand {
+public class PingCommand {
 
     private final Sage plugin;
 
     public PingCommand(Sage plugin) {
         this.plugin = plugin;
     }
-    @Default
-    @CommandCompletion("@players")
-    @Syntax("[player]")
-    public void onCommand(Player sender, String[] args) {
-        Player target = null;
 
-        if (args.length > 0) {
-            target = Bukkit.getPlayer(args[0]);
+    @Command("ping [player]")
+    @Permission("sage.ping")
+    public void onCommand(Player sender, @Argument(value = "player", suggestions = "players") String targetName) {
+        Player target;
+
+        if (targetName != null) {
+            target = Bukkit.getPlayer(targetName);
             if (target == null) {
                 sender.sendMessage("§cPlayer not found!");
                 return;
@@ -34,7 +32,7 @@ public class PingCommand extends BaseCommand {
 
         int ping = target.getPing();
         String color;
-        
+
         if (ping < 50) {
             color = "§a";
         } else if (ping < 100) {

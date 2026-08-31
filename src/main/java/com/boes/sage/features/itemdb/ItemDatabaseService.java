@@ -1,72 +1,96 @@
 package com.boes.sage.features.itemdb;
 
 import com.boes.sage.Sage;
-import com.boes.sage.Utils.JsonStorageManager;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.boes.sage.Utils.DatabaseManager;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.io.BukkitObjectInputStream;
 import org.bukkit.util.io.BukkitObjectOutputStream;
-import org.yaml.snakeyaml.external.biz.base64Coder.Base64Coder;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
 import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Base64;
 import java.util.HashSet;
 import java.util.Set;
 
 public class ItemDatabaseService {
-    private final JsonStorageManager storageManager;
+    private final DatabaseManager databaseManager;
 
     public ItemDatabaseService(Sage plugin) {
-        this.storageManager = new JsonStorageManager(new File(plugin.getDataFolder(), "itemdb.json"));
+        this.databaseManager = plugin.getDatabaseManager();
     }
 
-    public void addItem(String name, ItemStack item) {
+    public boolean addItem(String name, ItemStack item) {
         if (item == null || item.getType().isAir()) {
             throw new IllegalArgumentException("Cannot save air or null item!");
         }
 
-        JsonObject json = storageManager.load();
-        JsonObject itemObj = new JsonObject();
-        itemObj.addProperty("timestamp", System.currentTimeMillis());
-        itemObj.addProperty("serialized", serializeItemStack(item));
-        
-        json.add(name.toLowerCase(), itemObj);
-        storageManager.save(json);
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "INSERT OR IGNORE INTO item_db (name, timestamp, serialized) VALUES (?, ?, ?)")) {
+            statement.setString(1, name.toLowerCase());
+            statement.setLong(2, System.currentTimeMillis());
+            statement.setString(3, serializeItemStack(item));
+            return statement.executeUpdate() > 0;
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to save item " + name, e);
+        }
     }
 
     public ItemStack getItem(String name) {
-        JsonObject json = storageManager.load();
-        if (!json.has(name.toLowerCase())) {
-            return null;
-        }
-
-        try {
-            JsonObject itemObj = json.getAsJsonObject(name.toLowerCase());
-            String serialized = itemObj.get("serialized").getAsString();
-            return deserializeItemStack(serialized);
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT serialized FROM item_db WHERE name = ?")) {
+            statement.setString(1, name.toLowerCase());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next()) {
+                    return null;
+                }
+                return deserializeItemStack(resultSet.getString("serialized"));
+            }
         } catch (Exception e) {
             return null;
         }
     }
 
     public void deleteItem(String name) {
-        JsonObject json = storageManager.load();
-        json.remove(name.toLowerCase());
-        storageManager.save(json);
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "DELETE FROM item_db WHERE name = ?")) {
+            statement.setString(1, name.toLowerCase());
+            statement.executeUpdate();
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to delete item " + name, e);
+        }
     }
 
     public boolean itemExists(String name) {
-        return storageManager.load().has(name.toLowerCase());
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT 1 FROM item_db WHERE name = ?")) {
+            statement.setString(1, name.toLowerCase());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                return resultSet.next();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to check item existence for " + name, e);
+        }
     }
 
     public Set<String> getItemNames() {
-        JsonObject json = storageManager.load();
         Set<String> names = new HashSet<>();
-        for (String key : json.keySet()) {
-            names.add(key);
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement("SELECT name FROM item_db");
+             ResultSet resultSet = statement.executeQuery()) {
+            while (resultSet.next()) {
+                names.add(resultSet.getString("name"));
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to load item names", e);
         }
         return names;
     }
@@ -77,7 +101,7 @@ public class ItemDatabaseService {
             BukkitObjectOutputStream dataOutput = new BukkitObjectOutputStream(outputStream);
             dataOutput.writeObject(item);
             dataOutput.close();
-            return Base64Coder.encodeLines(outputStream.toByteArray());
+            return Base64.getEncoder().encodeToString(outputStream.toByteArray());
         } catch (IOException e) {
             throw new RuntimeException("Failed to serialize item", e);
         }
@@ -85,7 +109,7 @@ public class ItemDatabaseService {
 
     private ItemStack deserializeItemStack(String serialized) {
         try {
-            byte[] decoded = Base64Coder.decodeLines(serialized);
+            byte[] decoded = Base64.getMimeDecoder().decode(serialized);
             ByteArrayInputStream inputStream = new ByteArrayInputStream(decoded);
             BukkitObjectInputStream dataInput = new BukkitObjectInputStream(inputStream);
             ItemStack item = (ItemStack) dataInput.readObject();

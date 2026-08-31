@@ -17,7 +17,7 @@ public class UsagePlayerQuitListener implements Listener {
     public void onPlayerQuit(PlayerQuitEvent event) {
         Player player = event.getPlayer();
         if (plugin.getUsageBossBarService().hasBossBar(player.getUniqueId())) {
-            plugin.getUsageBossBarService().removeBossBar(player);
+            plugin.getUsageBossBarService().disconnectBossBar(player);
         }
     }
 }

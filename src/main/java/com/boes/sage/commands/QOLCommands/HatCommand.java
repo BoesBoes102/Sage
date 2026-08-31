@@ -1,24 +1,22 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
 import com.boes.sage.Sage;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("hat")
-@Description("Put the item in your hand on your head")
-@CommandPermission("sage.hat")
-public class HatCommand extends BaseCommand {
+public class HatCommand {
 
     private final Sage plugin;
 
     public HatCommand(Sage plugin) {
         this.plugin = plugin;
     }
-    @Default
-    @Syntax("")
+
+    @Command("hat")
+    @Permission("sage.hat")
     public void onCommand(Player player) {
         ItemStack itemInHand = player.getInventory().getItemInMainHand();
 

@@ -1,34 +1,27 @@
 package com.boes.sage.commands.TeleportCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandCompletion;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Optional;
-import co.aikar.commands.annotation.Single;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.WorldCreator;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
-@CommandAlias("world")
-@CommandPermission("sage.world")
-public class WorldCommand extends BaseCommand {
+public class WorldCommand {
 
-    private static final String RED = "\u00A7c";
-    private static final String YELLOW = "\u00A7e";
-    private static final String GREEN = "\u00A7a";
-    private static final String GOLD = "\u00A76";
-    private static final String GRAY = "\u00A77";
-    private static final String WHITE = "\u00A7f";
+    private static final String RED = "§c";
+    private static final String YELLOW = "§e";
+    private static final String GREEN = "§a";
+    private static final String GOLD = "§6";
+    private static final String GRAY = "§7";
+    private static final String WHITE = "§f";
 
     private final Sage plugin;
 
@@ -36,10 +29,9 @@ public class WorldCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Default
-    @Syntax("[world]")
-    @CommandCompletion("@worldNames")
-    public void onCommand(Player player, @Optional @Single String worldName) {
+    @Command("world [world]")
+    @Permission("sage.world")
+    public void onCommand(Player player, @Argument(value = "world", suggestions = "worldNames") String worldName) {
         if (worldName == null || worldName.isBlank()) {
             sendWorldList(player);
             return;

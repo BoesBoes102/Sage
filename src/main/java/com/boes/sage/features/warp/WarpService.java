@@ -2,13 +2,15 @@ package com.boes.sage.features.warp;
 
 import com.boes.sage.Sage;
 import com.boes.sage.features.warp.data.Warp;
-import com.boes.sage.Utils.JsonStorageManager;
-import com.google.gson.JsonObject;
+import com.boes.sage.Utils.DatabaseManager;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 
-import java.io.File;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -20,11 +22,11 @@ public class WarpService {
 
     private final Sage plugin;
     private final Map<String, Warp> warps = new HashMap<>();
-    private final JsonStorageManager storageManager;
+    private final DatabaseManager databaseManager;
 
     public WarpService(Sage plugin) {
         this.plugin = plugin;
-        this.storageManager = new JsonStorageManager(new File(plugin.getDataFolder(), "warps.json"));
+        this.databaseManager = plugin.getDatabaseManager();
         loadWarps();
     }
 
@@ -37,9 +39,16 @@ public class WarpService {
     public boolean deleteWarp(String name) {
         Warp removed = warps.remove(name.toLowerCase());
         if (removed != null) {
-            JsonObject json = storageManager.load();
-            json.remove(name.toLowerCase());
-            storageManager.save(json);
+            String lowerName = name.toLowerCase();
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                try (Connection connection = databaseManager.getConnection();
+                     PreparedStatement statement = connection.prepareStatement("DELETE FROM warps WHERE name = ?")) {
+                    statement.setString(1, lowerName);
+                    statement.executeUpdate();
+                } catch (SQLException e) {
+                    plugin.getLogger().severe("Failed to delete warp " + lowerName + ": " + e.getMessage());
+                }
+            });
             return true;
         }
         return false;
@@ -88,44 +97,67 @@ public class WarpService {
     }
 
     private void saveWarp(Warp warp) {
-        JsonObject json = storageManager.load();
-        JsonObject warpObj = new JsonObject();
-        warpObj.addProperty("world", warp.getWorldName());
-        warpObj.addProperty("x", warp.getX());
-        warpObj.addProperty("y", warp.getY());
-        warpObj.addProperty("z", warp.getZ());
-        warpObj.addProperty("yaw", warp.getYaw());
-        warpObj.addProperty("pitch", warp.getPitch());
-        warpObj.addProperty("hidden", warp.isHidden());
-        json.add(warp.getName().toLowerCase(), warpObj);
-        storageManager.save(json);
+        String name = warp.getName().toLowerCase();
+        String worldName = warp.getWorldName();
+        double x = warp.getX();
+        double y = warp.getY();
+        double z = warp.getZ();
+        float yaw = warp.getYaw();
+        float pitch = warp.getPitch();
+        boolean hidden = warp.isHidden();
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try (Connection connection = databaseManager.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(
+                         "INSERT INTO warps (name, world, x, y, z, yaw, pitch, hidden) VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
+                         "ON CONFLICT(name) DO UPDATE SET world = excluded.world, x = excluded.x, y = excluded.y, " +
+                         "z = excluded.z, yaw = excluded.yaw, pitch = excluded.pitch, hidden = excluded.hidden")) {
+                statement.setString(1, name);
+                statement.setString(2, worldName);
+                statement.setDouble(3, x);
+                statement.setDouble(4, y);
+                statement.setDouble(5, z);
+                statement.setFloat(6, yaw);
+                statement.setFloat(7, pitch);
+                statement.setInt(8, hidden ? 1 : 0);
+                statement.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().severe("Failed to save warp " + name + ": " + e.getMessage());
+            }
+        });
     }
 
     private void loadWarps() {
-        JsonObject json = storageManager.load();
-        
-        for (String warpName : json.keySet()) {
-            try {
-                JsonObject warpObj = json.getAsJsonObject(warpName);
-                String worldName = warpObj.get("world").getAsString();
-                World world = Bukkit.getWorld(worldName);
-                if (world == null) {
-                    plugin.getLogger().warning("Warp '" + warpName + "' references missing world '" + worldName + "'. Skipping.");
-                    continue;
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT name, world, x, y, z, yaw, pitch, hidden FROM warps");
+             ResultSet resultSet = statement.executeQuery()) {
+
+            while (resultSet.next()) {
+                String warpName = resultSet.getString("name");
+                try {
+                    String worldName = resultSet.getString("world");
+                    World world = Bukkit.getWorld(worldName);
+                    if (world == null) {
+                        plugin.getLogger().warning("Warp '" + warpName + "' references missing world '" + worldName + "'. Skipping.");
+                        continue;
+                    }
+
+                    double x = resultSet.getDouble("x");
+                    double y = resultSet.getDouble("y");
+                    double z = resultSet.getDouble("z");
+                    float yaw = resultSet.getFloat("yaw");
+                    float pitch = resultSet.getFloat("pitch");
+                    boolean hidden = resultSet.getInt("hidden") != 0;
+
+                    Location location = new Location(world, x, y, z, yaw, pitch);
+                    warps.put(warpName.toLowerCase(), new Warp(warpName, location, hidden));
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Error loading warp '" + warpName + "': " + e.getMessage());
                 }
-
-                double x = warpObj.get("x").getAsDouble();
-                double y = warpObj.get("y").getAsDouble();
-                double z = warpObj.get("z").getAsDouble();
-                float yaw = warpObj.get("yaw").getAsFloat();
-                float pitch = warpObj.get("pitch").getAsFloat();
-                boolean hidden = warpObj.get("hidden").getAsBoolean();
-
-                Location location = new Location(world, x, y, z, yaw, pitch);
-                warps.put(warpName.toLowerCase(), new Warp(warpName, location, hidden));
-            } catch (Exception e) {
-                plugin.getLogger().warning("Error loading warp '" + warpName + "': " + e.getMessage());
             }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to load warps", e);
         }
     }
 

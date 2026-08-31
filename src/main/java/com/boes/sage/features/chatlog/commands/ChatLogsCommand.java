@@ -1,98 +1,100 @@
 package com.boes.sage.features.chatlog.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandCompletion;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Optional;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import com.boes.sage.features.chatlog.data.ChatLogEntry;
 import net.md_5.bungee.api.chat.ClickEvent;
-import net.md_5.bungee.api.chat.ComponentBuilder;
 import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
-@CommandAlias("chatlogs")
-@CommandPermission("sage.chatlogs")
-public class ChatLogsCommand extends BaseCommand {
+public class ChatLogsCommand {
     private final Sage plugin;
 
     public ChatLogsCommand(Sage plugin) {
         this.plugin = plugin;
     }
 
-    @Default
-    @Syntax("<message|command> <player> [page]")
-    @CommandCompletion("message|command @players")
-    public void onCommand(Player player, String type, String playerName, @Optional Integer page) {
+    @Command("chatlogs <type> <player> [page]")
+    @Permission("sage.chatlogs")
+    public void onCommand(
+            Player issuer,
+            @Argument(value = "type", suggestions = "chatLogTypes") String type,
+            @Argument(value = "player", suggestions = "players") String playerName,
+            @Argument(value = "page", suggestions = "chatLogPages") Integer page
+    ) {
         if (!type.equalsIgnoreCase("message") && !type.equalsIgnoreCase("command")) {
-            player.sendMessage("§cType must be 'message' or 'command'!");
-            return;
-        }
-
-        OfflinePlayer target = Bukkit.getOfflinePlayer(playerName);
-        if (!target.hasPlayedBefore()) {
-            player.sendMessage("§cPlayer has never joined!");
+            issuer.sendMessage("§cType must be 'message' or 'command'!");
             return;
         }
 
         int pageNum = page != null ? page : 1;
         if (pageNum < 1) {
-            player.sendMessage("§cPage number must be at least 1!");
+            issuer.sendMessage("§cPage number must be at least 1!");
             return;
         }
 
-        List<ChatLogEntry> logs = plugin.getChatLogService().getLogsPage(target.getUniqueId(), type, pageNum);
-        int totalPages = plugin.getChatLogService().getTotalPages(target.getUniqueId(), type);
-
-        if (logs.isEmpty()) {
-            player.sendMessage("§cNo " + type + " logs found for " + target.getName() + "!");
-            return;
-        }
-
-        player.sendMessage("§e========== " + target.getName() + "'s " + type.toUpperCase() + " Logs ==========");
-        player.sendMessage("§7Page " + pageNum + " of " + totalPages);
-        player.sendMessage("");
-
-        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-
-        for (ChatLogEntry log : logs) {
-            String date = sdf.format(new Date(log.getTimestamp()));
-            player.sendMessage("§7[§f" + date + "§7] §f" + log.getMessage());
-        }
-
-        player.sendMessage("");
-        
-        if (totalPages > 1) {
-            TextComponent navigationComponent = new TextComponent("§7Navigation: ");
-            
-            if (pageNum > 1) {
-                TextComponent previousComponent = new TextComponent("§e[<< PREVIOUS]");
-                previousComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, 
-                    "/chatlogs " + type + " " + target.getName() + " " + (pageNum - 1)));
-                navigationComponent.addExtra(previousComponent);
-                navigationComponent.addExtra(new TextComponent("§7 "));
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            OfflinePlayer target = Bukkit.getOfflinePlayer(playerName);
+            if (!target.hasPlayedBefore()) {
+                Bukkit.getScheduler().runTask(plugin, () -> issuer.sendMessage("§cPlayer has never joined!"));
+                return;
             }
-            
-            navigationComponent.addExtra(new TextComponent("§f[§e" + pageNum + "§f/§e" + totalPages + "§f]"));
-            
-            if (pageNum < totalPages) {
-                TextComponent nextComponent = new TextComponent(" §e[NEXT >>]");
-                nextComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, 
-                    "/chatlogs " + type + " " + target.getName() + " " + (pageNum + 1)));
-                navigationComponent.addExtra(nextComponent);
+
+            List<ChatLogEntry> logs = plugin.getChatLogService().getLogsPage(target.getUniqueId(), type, pageNum);
+            int totalPages = plugin.getChatLogService().getTotalPages(target.getUniqueId(), type);
+
+            if (logs.isEmpty()) {
+                Bukkit.getScheduler().runTask(plugin, () ->
+                        issuer.sendMessage("§cNo " + type + " logs found for " + target.getName() + "!"));
+                return;
             }
-            
-            player.spigot().sendMessage(navigationComponent);
-            player.sendMessage("§7Use: /chatlogs " + type + " " + target.getName() + " <page>");
-        }
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                issuer.sendMessage("§e========== " + target.getName() + "'s " + type.toUpperCase() + " Logs ==========");
+                issuer.sendMessage("§7Page " + pageNum + " of " + totalPages);
+                issuer.sendMessage("");
+
+                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
+
+                for (ChatLogEntry log : logs) {
+                    String date = sdf.format(new Date(log.getTimestamp()));
+                    issuer.sendMessage("§7[§f" + date + "§7] §f" + log.getMessage());
+                }
+
+                issuer.sendMessage("");
+
+                if (totalPages > 1) {
+                    TextComponent navigationComponent = new TextComponent("§7Navigation: ");
+
+                    if (pageNum > 1) {
+                        TextComponent previousComponent = new TextComponent("§e[<< PREVIOUS]");
+                        previousComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                            "/chatlogs " + type + " " + target.getName() + " " + (pageNum - 1)));
+                        navigationComponent.addExtra(previousComponent);
+                        navigationComponent.addExtra(new TextComponent("§7 "));
+                    }
+
+                    navigationComponent.addExtra(new TextComponent("§f[§e" + pageNum + "§f/§e" + totalPages + "§f]"));
+
+                    if (pageNum < totalPages) {
+                        TextComponent nextComponent = new TextComponent(" §e[NEXT >>]");
+                        nextComponent.setClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND,
+                            "/chatlogs " + type + " " + target.getName() + " " + (pageNum + 1)));
+                        navigationComponent.addExtra(nextComponent);
+                    }
+
+                    issuer.spigot().sendMessage(navigationComponent);
+                    issuer.sendMessage("§7Use: /chatlogs " + type + " " + target.getName() + " <page>");
+                }
+            });
+        });
     }
 }

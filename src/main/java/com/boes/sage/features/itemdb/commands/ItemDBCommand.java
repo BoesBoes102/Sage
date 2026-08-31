@@ -1,23 +1,17 @@
 package com.boes.sage.features.itemdb.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandCompletion;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Conditions;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Subcommand;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import com.boes.sage.features.itemdb.ItemDatabaseService;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
 import java.util.Set;
 
-@CommandAlias("itemdb")
-@CommandPermission("sage.itemdb")
-public class ItemDBCommand extends BaseCommand {
+public class ItemDBCommand {
     private final Sage plugin;
     private final ItemDatabaseService itemDatabase;
 
@@ -26,17 +20,15 @@ public class ItemDBCommand extends BaseCommand {
         this.itemDatabase = plugin.getItemDatabaseService();
     }
 
-    @Default
-    @Syntax("<add|give|delete|list>")
+    @Command("itemdb")
+    @Permission("sage.itemdb")
     public void onDefault(Player player) {
         player.sendMessage("§cUsage: /itemdb <add|give|delete|list>");
     }
 
-    @Subcommand("add")
-    @Conditions("player-only")
-    @CommandPermission("sage.itemdb.add")
-    @Syntax("<name>")
-    public void onAdd(Player player, String itemName) {
+    @Command("itemdb add <name>")
+    @Permission("sage.itemdb.add")
+    public void onAdd(Player player, @Argument("name") String itemName) {
         ItemStack item = player.getInventory().getItemInMainHand();
 
         if (item == null || item.getType().isAir()) {
@@ -46,65 +38,68 @@ public class ItemDBCommand extends BaseCommand {
 
         String name = itemName.toLowerCase();
 
-        if (itemDatabase.itemExists(name)) {
-            player.sendMessage("§cItem '" + name + "' already exists in the database!");
-            return;
-        }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                boolean added = itemDatabase.addItem(name, item);
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (!added) {
+                        player.sendMessage("§cItem '" + name + "' already exists in the database!");
+                        return;
+                    }
 
-        try {
-            itemDatabase.addItem(name, item);
-            player.sendMessage("§a§lItem '" + name + "' saved to database!");
-            player.sendMessage("§7Item: §f" + item.getType().toString());
-            player.sendMessage("§7Amount: §f" + item.getAmount());
-            if (item.hasItemMeta() && item.getItemMeta() != null) {
-                if (item.getItemMeta().hasDisplayName()) {
-                    player.sendMessage("§7Display Name: §f" + item.getItemMeta().getDisplayName());
-                }
+                    player.sendMessage("§a§lItem '" + name + "' saved to database!");
+                    player.sendMessage("§7Item: §f" + item.getType().toString());
+                    player.sendMessage("§7Amount: §f" + item.getAmount());
+                    if (item.hasItemMeta() && item.getItemMeta() != null) {
+                        if (item.getItemMeta().hasDisplayName()) {
+                            player.sendMessage("§7Display Name: §f" + item.getItemMeta().getDisplayName());
+                        }
+                    }
+                });
+            } catch (Exception e) {
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    player.sendMessage("§cError: §c" + e.getMessage());
+                    plugin.getLogger().warning("Failed to save item: " + e.getMessage());
+                });
             }
-        } catch (Exception e) {
-            player.sendMessage("§c§lError: §c" + e.getMessage());
-            plugin.getLogger().warning("Failed to save item: " + e.getMessage());
-        }
+        });
     }
 
-    @Subcommand("give")
-    @Conditions("player-only")
-    @CommandPermission("sage.itemdb.give")
-    @Syntax("<name>")
-    @CommandCompletion("@itemdb")
-    public void onGive(Player player, String itemName) {
+    @Command("itemdb give <name>")
+    @Permission("sage.itemdb.give")
+    public void onGive(Player player, @Argument(value = "name", suggestions = "itemdb") String itemName) {
         String name = itemName.toLowerCase();
 
-        if (!itemDatabase.itemExists(name)) {
-            player.sendMessage("§cItem '" + name + "' does not exist in the database!");
-            return;
-        }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                ItemStack item = itemDatabase.getItem(name);
+                if (item == null) {
+                    Bukkit.getScheduler().runTask(plugin, () ->
+                            player.sendMessage("§cItem '" + name + "' does not exist in the database!"));
+                    return;
+                }
 
-        try {
-            ItemStack item = itemDatabase.getItem(name);
-            if (item == null) {
-                player.sendMessage("§cFailed to retrieve item!");
-                return;
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (player.getInventory().firstEmpty() == -1) {
+                        player.getWorld().dropItem(player.getLocation(), item);
+                        player.sendMessage("§aItem '" + name + "' dropped on ground (inventory full)!");
+                    } else {
+                        player.getInventory().addItem(item);
+                        player.sendMessage("§aItem '" + name + "' added to your inventory!");
+                    }
+                });
+            } catch (Exception e) {
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    player.sendMessage("§cError: §c" + e.getMessage());
+                    plugin.getLogger().warning("Failed to give item: " + e.getMessage());
+                });
             }
-
-            if (player.getInventory().firstEmpty() == -1) {
-                player.getWorld().dropItem(player.getLocation(), item);
-                player.sendMessage("§a§lItem '" + name + "' dropped on ground (inventory full)!");
-            } else {
-                player.getInventory().addItem(item);
-                player.sendMessage("§a§lItem '" + name + "' added to your inventory!");
-            }
-        } catch (Exception e) {
-            player.sendMessage("§c§lError: §c" + e.getMessage());
-            plugin.getLogger().warning("Failed to give item: " + e.getMessage());
-        }
+        });
     }
 
-    @Subcommand("delete")
-    @CommandPermission("sage.itemdb.delete")
-    @Syntax("<name>")
-    @CommandCompletion("@itemdb")
-    public void onDelete(Player player, String itemName) {
+    @Command("itemdb delete <name>")
+    @Permission("sage.itemdb.delete")
+    public void onDelete(Player player, @Argument(value = "name", suggestions = "itemdb") String itemName) {
         String name = itemName.toLowerCase();
 
         if (!itemDatabase.itemExists(name)) {
@@ -116,9 +111,8 @@ public class ItemDBCommand extends BaseCommand {
         player.sendMessage("§a§lItem '" + name + "' deleted from database!");
     }
 
-    @Subcommand("list")
-    @CommandPermission("sage.itemdb.list")
-    @Syntax("")
+    @Command("itemdb list")
+    @Permission("sage.itemdb.list")
     public void onList(Player player) {
         Set<String> items = itemDatabase.getItemNames();
 

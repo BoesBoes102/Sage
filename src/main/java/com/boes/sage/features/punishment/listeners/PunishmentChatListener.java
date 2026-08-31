@@ -20,7 +20,7 @@ public class PunishmentChatListener implements Listener {
         }
 
         event.setCancelled(true);
-        event.getPlayer().sendMessage("Â§cYou are muted and cannot chat!");
+        event.getPlayer().sendMessage("§cYou are muted and cannot chat!");
     }
 
     @EventHandler
@@ -30,11 +30,11 @@ public class PunishmentChatListener implements Listener {
         }
 
         String command = event.getMessage().toLowerCase().split(" ")[0];
-        if (command.equals("/msg") || command.equals("/tell") || command.equals("/pm")
+        if (command.equals("/msg") || command.equals("/message") || command.equals("/tell") || command.equals("/pm")
                 || command.equals("/w") || command.equals("/whisper") || command.equals("/reply")
                 || command.equals("/r")) {
             event.setCancelled(true);
-            event.getPlayer().sendMessage("Â§cYou are muted and cannot send private messages!");
+            event.getPlayer().sendMessage("§cYou are muted and cannot send private messages!");
         }
     }
 }

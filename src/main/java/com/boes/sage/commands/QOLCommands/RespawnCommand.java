@@ -1,29 +1,30 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
+import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("respawn|kill|die")
-@Description("Kill a player, sending them to spawn")
-@CommandPermission("sage.respawn")
-public class RespawnCommand extends BaseCommand {
+public class RespawnCommand {
 
     private final Sage plugin;
 
     public RespawnCommand(Sage plugin) {
         this.plugin = plugin;
     }
-    @Default
-    @CommandCompletion("@players")
-    @Syntax("[player]")
-    public void onCommand(org.bukkit.command.CommandSender sender, String[] args) {
-        Player target = null;
 
-        if (args.length > 0) {
-            target = Bukkit.getPlayer(args[0]);
+    @Command("respawn [player]")
+    @Command("kill [player]")
+    @Command("die [player]")
+    @Permission("sage.respawn")
+    public void onCommand(CommandSender sender, @Argument(value = "player", suggestions = "players") String targetName) {
+        Player target;
+
+        if (targetName != null) {
+            target = Bukkit.getPlayer(targetName);
             if (target == null) {
                 sender.sendMessage("§cPlayer not found!");
                 return;

@@ -1,29 +1,29 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("survival|gms|gm1")
-@Description("Set gamemode to Survival")
-@CommandPermission("sage.gamemode.survival")
-public class GamemodeSurvivalCommand extends BaseCommand {
+public class GamemodeSurvivalCommand {
 
     private final Sage plugin;
 
     public GamemodeSurvivalCommand(Sage plugin) {
         this.plugin = plugin;
     }
-    @Default
-    @CommandCompletion("@players")
-    @Syntax("[player]")
-    public void onCommand(CommandSender sender, @Optional String targetName) {
+
+    @Command("survival [player]")
+    @Command("gms [player]")
+    @Command("gm1 [player]")
+    @Permission("sage.gamemode.survival")
+    public void onCommand(CommandSender sender, @Argument(value = "player", suggestions = "players") String targetName) {
         Player target = null;
-        
+
         if (targetName != null) {
             target = Bukkit.getPlayer(targetName);
             if (target == null) {

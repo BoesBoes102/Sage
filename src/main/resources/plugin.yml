@@ -1,5 +1,5 @@
 name: Sage
-version: 1.5.0
+version: 1.6.0
 main: com.boes.sage.Sage
 api-version: 1.21
 author: Boes
@@ -39,7 +39,7 @@ permissions:
     default: op
   sage.history.self:
     description: View your own punishment history
-    default: true
+    default: op
   sage.history.others:
     description: View other players punishment history
     default: op
@@ -115,6 +115,9 @@ permissions:
   sage.openender:
     description: Access to /openender command
     default: op
+  sage.enderchest:
+    description: Access to /ec command
+    default: op
   sage.world:
     description: Access to /world command
     default: op
@@ -126,9 +129,6 @@ permissions:
     default: op
   sage.itemedit:
     description: Access to /itemedit commands
-    default: op
-  sage.consolespy:
-    description: Access to /consolespy command
     default: op
   sage.commandspy:
     description: Access to /commandspy command
@@ -231,4 +231,46 @@ permissions:
     default: op
   sage.refund.admin:
     description: Access to review and send player refund snapshots
+    default: op
+  sage.god:
+    description: Access to /god command
+    default: op
+  sage.msg:
+    description: Access to /msg and /reply commands
+    default: true
+  sage.messagespy:
+    description: Access to /messagespy command
+    default: op
+  sage.craft:
+    description: Access to /craft command
+    default: op
+  sage.stonecutter:
+    description: Access to /stonecutter command
+    default: op
+  sage.loom:
+    description: Access to /loom command
+    default: op
+  sage.cartographytable:
+    description: Access to /cartographytable command
+    default: op
+  sage.smithingtable:
+    description: Access to /smithingtable command
+    default: op
+  sage.anvil:
+    description: Access to /anvil command
+    default: op
+  sage.grindstone:
+    description: Access to /grindstone command
+    default: op
+  sage.furnace:
+    description: Access to /furnace command
+    default: op
+  sage.blastfurnace:
+    description: Access to /blastfurnace command
+    default: op
+  sage.smoker:
+    description: Access to /smoker command
+    default: op
+  sage.brewingstand:
+    description: Access to /brewingstand command
     default: op

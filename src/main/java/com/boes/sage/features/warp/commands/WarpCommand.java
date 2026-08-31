@@ -1,21 +1,16 @@
 package com.boes.sage.features.warp.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandCompletion;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Subcommand;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import com.boes.sage.features.warp.data.Warp;
 import com.boes.sage.features.warp.WarpService;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("warp")
-public class WarpCommand extends BaseCommand {
+public class WarpCommand {
 
     private final WarpService warpManager;
 
@@ -26,10 +21,8 @@ public class WarpCommand extends BaseCommand {
         this.warpManager = plugin.getWarpService();
     }
 
-    @Default
-    @Syntax("[warp]")
-    @CommandCompletion("@warp")
-    public void onWarp(Player player, @co.aikar.commands.annotation.Optional String warpName) {
+    @Command("warp [warp]")
+    public void onWarp(Player player, @Argument(value = "warp", suggestions = "warp") String warpName) {
         boolean hasAdmin = player.hasPermission(ADMIN_PERMISSION);
 
         if (!player.hasPermission(USE_PERMISSION) && !hasAdmin) {
@@ -67,7 +60,7 @@ public class WarpCommand extends BaseCommand {
 
     private void listWarps(Player player, boolean includeHidden) {
         java.util.List<Warp> warps = includeHidden ? new java.util.ArrayList<>(warpManager.getWarps()) : warpManager.getVisibleWarps();
-        
+
         if (warps.isEmpty()) {
             player.sendMessage("§cNo warps available!");
             return;
@@ -79,10 +72,9 @@ public class WarpCommand extends BaseCommand {
         }
     }
 
-    @Subcommand("create")
-    @CommandPermission(ADMIN_PERMISSION)
-    @Syntax("<name>")
-    public void onCreate(Player player, String warpName) {
+    @Command("warp create <name>")
+    @Permission(ADMIN_PERMISSION)
+    public void onCreate(Player player, @Argument("name") String warpName) {
         if (warpManager.warpExists(warpName)) {
             player.sendMessage("§cA warp with that name already exists!");
             return;
@@ -92,11 +84,9 @@ public class WarpCommand extends BaseCommand {
         player.sendMessage("§aWarp §e" + warpName + " §ahas been created at your location.");
     }
 
-    @Subcommand("delete")
-    @CommandPermission(ADMIN_PERMISSION)
-    @Syntax("<name>")
-    @CommandCompletion("@warp")
-    public void onDelete(Player player, String warpName) {
+    @Command("warp delete <name>")
+    @Permission(ADMIN_PERMISSION)
+    public void onDelete(Player player, @Argument(value = "name", suggestions = "warpAdmin") String warpName) {
         if (!warpManager.deleteWarp(warpName)) {
             player.sendMessage("§cWarp not found!");
             return;
@@ -105,11 +95,9 @@ public class WarpCommand extends BaseCommand {
         player.sendMessage("§aWarp §e" + warpName + " §ahas been deleted.");
     }
 
-    @Subcommand("setlocation")
-    @CommandPermission(ADMIN_PERMISSION)
-    @Syntax("<name>")
-    @CommandCompletion("@warp")
-    public void onSetLocation(Player player, String warpName) {
+    @Command("warp setlocation <name>")
+    @Permission(ADMIN_PERMISSION)
+    public void onSetLocation(Player player, @Argument(value = "name", suggestions = "warpAdmin") String warpName) {
         if (!warpManager.warpExists(warpName)) {
             player.sendMessage("§cWarp not found!");
             return;
@@ -119,11 +107,13 @@ public class WarpCommand extends BaseCommand {
         player.sendMessage("§aWarp §e" + warpName + " §alocation updated to your current position.");
     }
 
-    @Subcommand("sethidden")
-    @CommandPermission(ADMIN_PERMISSION)
-    @Syntax("<name> <true|false>")
-    @CommandCompletion("@warp true|false")
-    public void onSetHidden(Player player, String warpName, boolean hidden) {
+    @Command("warp sethidden <name> <hidden>")
+    @Permission(ADMIN_PERMISSION)
+    public void onSetHidden(
+            Player player,
+            @Argument(value = "name", suggestions = "warpAdmin") String warpName,
+            @Argument("hidden") boolean hidden
+    ) {
         if (!warpManager.warpExists(warpName)) {
             player.sendMessage("§cWarp not found!");
             return;

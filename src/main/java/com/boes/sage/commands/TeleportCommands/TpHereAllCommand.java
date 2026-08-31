@@ -1,19 +1,13 @@
 package com.boes.sage.commands.TeleportCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandCompletion;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Optional;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("tphereall")
-@CommandPermission("sage.tphereall")
-public class TpHereAllCommand extends BaseCommand {
+public class TpHereAllCommand {
 
     private final Sage plugin;
 
@@ -21,10 +15,9 @@ public class TpHereAllCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Default
-    @Syntax("[player]")
-    @CommandCompletion("@players")
-    public void onCommand(Player sender, @Optional String targetName) {
+    @Command("tphereall [player]")
+    @Permission("sage.tphereall")
+    public void onCommand(Player sender, @Argument(value = "player", suggestions = "players") String targetName) {
         Player destination;
 
         if (targetName == null) {

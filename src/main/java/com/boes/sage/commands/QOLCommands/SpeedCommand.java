@@ -1,16 +1,14 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("speed")
-@Description("Modify player speed")
-@CommandPermission("sage.speed")
-public class SpeedCommand extends BaseCommand {
+public class SpeedCommand {
 
     private final Sage plugin;
 
@@ -18,14 +16,33 @@ public class SpeedCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Subcommand("reset")
-    @CommandCompletion("@players")
-    @Syntax("reset [player]")
-    public void onReset(CommandSender sender, String[] args) {
-        Player target = null;
+    @Command("speed <number> [mode] [player]")
+    @Permission("sage.speed")
+    public void onCommand(
+            CommandSender sender,
+            @Argument(value = "number", suggestions = "speedOptions") String numberArg,
+            @Argument(value = "mode", suggestions = "speedModes") String mode,
+            @Argument(value = "player", suggestions = "players") String targetName
+    ) {
+        if (numberArg.equalsIgnoreCase("reset")) {
+            applyReset(sender, targetName);
+            return;
+        }
 
-        if (args.length > 0) {
-            target = Bukkit.getPlayer(args[0]);
+        mode = mode != null ? mode.toLowerCase() : "both";
+        if (!mode.equals("fly") && !mode.equals("walk") && !mode.equals("both")) {
+            sender.sendMessage("§cUsage: /speed <1-10|reset> [fly|walk|both] [player]");
+            return;
+        }
+
+        applySpeed(sender, numberArg, mode, targetName);
+    }
+
+    private void applyReset(CommandSender sender, String targetName) {
+        Player target;
+
+        if (targetName != null) {
+            target = Bukkit.getPlayer(targetName);
             if (target == null) {
                 sender.sendMessage("§cPlayer not found!");
                 return;
@@ -52,18 +69,10 @@ public class SpeedCommand extends BaseCommand {
         }
     }
 
-    @Default
-    @CommandCompletion("1|2|3|4|5|6|7|8|9|10 fly|walk|both @players")
-    @Syntax("<number> [fly|walk|both] [player]")
-    public void onCommand(CommandSender sender, String[] args) {
-        if (args.length < 1) {
-            sender.sendMessage("§cUsage: /speed <number> [fly|walk|both] [player]");
-            return;
-        }
-
+    private void applySpeed(CommandSender sender, String numberArg, String mode, String targetName) {
         float speed;
         try {
-            speed = Float.parseFloat(args[0]);
+            speed = Float.parseFloat(numberArg);
         } catch (NumberFormatException e) {
             sender.sendMessage("§cSpeed must be a number!");
             return;
@@ -74,19 +83,13 @@ public class SpeedCommand extends BaseCommand {
             return;
         }
 
-        String mode = "both";
-        Player target = null;
-
-        if (args.length > 1 && (args[args.length - 1].equalsIgnoreCase("fly") || args[args.length - 1].equalsIgnoreCase("walk") || args[args.length - 1].equalsIgnoreCase("both"))) {
-            mode = args[args.length - 1].toLowerCase();
-            if (args.length > 2) {
-                target = Bukkit.getPlayer(args[args.length - 2]);
-            }
-        } else if (args.length > 1) {
-            target = Bukkit.getPlayer(args[args.length - 1]);
-        }
+        Player target = targetName != null ? Bukkit.getPlayer(targetName) : null;
 
         if (target == null) {
+            if (targetName != null) {
+                sender.sendMessage("§cPlayer not found!");
+                return;
+            }
             if (!(sender instanceof Player)) {
                 sender.sendMessage("§cYou must specify a player from console!");
                 return;
@@ -114,7 +117,7 @@ public class SpeedCommand extends BaseCommand {
                 break;
 
             default:
-                sender.sendMessage("§cUsage: /speed <number> [fly|walk|both] [player]");
+                sender.sendMessage("§cUsage: /speed <1-10|reset> [fly|walk|both] [player]");
                 return;
         }
 

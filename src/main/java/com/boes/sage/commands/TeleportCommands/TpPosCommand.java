@@ -1,21 +1,15 @@
 package com.boes.sage.commands.TeleportCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandCompletion;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Optional;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("tppos")
-@CommandPermission("sage.tppos")
-public class TpPosCommand extends BaseCommand {
+public class TpPosCommand {
 
     private final Sage plugin;
 
@@ -23,10 +17,15 @@ public class TpPosCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Default
-    @Syntax("<x> <y> <z> [world]")
-    @CommandCompletion("~ ~ ~ @worlds")
-    public void onCommand(Player player, double x, double y, double z, @Optional String worldName) {
+    @Command("tppos <x> <y> <z> [world]")
+    @Permission("sage.tppos")
+    public void onCommand(
+            Player player,
+            @Argument("x") double x,
+            @Argument("y") double y,
+            @Argument("z") double z,
+            @Argument(value = "world", suggestions = "worldNames") String worldName
+    ) {
         World world;
         if (worldName != null) {
             world = Bukkit.getWorld(worldName);

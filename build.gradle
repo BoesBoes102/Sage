@@ -1,48 +1,46 @@
 plugins {
     id 'java'
-    id 'com.github.johnrengelman.shadow' version '8.1.1'
+    id 'com.gradleup.shadow' version '9.6.1'
 }
 
 group = 'com.boes'
-version = '1.5.0'
+version = '1.6.0'
 
 repositories {
     mavenCentral()
-
     maven { url = "https://repo.papermc.io/repository/maven-public/" }
-
-    maven { url = "https://repo.aikar.co/content/groups/aikar/" }
-
     maven { url = "https://jitpack.io" }
-
 }
 
 dependencies {
-    compileOnly("io.papermc.paper:paper-api:1.21.11-R0.1-SNAPSHOT")
-
-    implementation("co.aikar:acf-paper:0.5.1-SNAPSHOT")
-
-
+    compileOnly("io.papermc.paper:paper-api:26.2.build.+")
+    implementation("org.incendo:cloud-core:2.0.0")
+    implementation("org.incendo:cloud-annotations:2.0.0")
+    implementation("org.incendo:cloud-paper:2.0.0-beta.16")
+    implementation("org.xerial:sqlite-jdbc:3.46.1.3")
 }
 
 java {
-    sourceCompatibility = JavaVersion.VERSION_21
-    targetCompatibility = JavaVersion.VERSION_21
+    sourceCompatibility = JavaVersion.VERSION_25
+    targetCompatibility = JavaVersion.VERSION_25
 }
 
 tasks.withType(JavaCompile).configureEach {
     options.encoding = 'UTF-8'
+    options.compilerArgs << '-parameters'
 }
+
+// --- Local server deployment ---
 
 tasks.register("deployPlugin") {
     dependsOn shadowJar
 
     doLast {
-        delete fileTree("$rootDir/server/plugins") {
+        project.delete fileTree("$rootDir/server/plugins") {
             include "${project.name}-*.jar"
         }
 
-        copy {
+        project.copy {
             from shadowJar.archiveFile
             into "$rootDir/server/plugins"
         }
@@ -56,13 +54,15 @@ tasks.register("deployAndRestart") {
         def isWindows = System.getProperty("os.name").toLowerCase().contains("windows")
 
         if (isWindows) {
-            exec {
-                commandLine "cmd", "/c", "restart-server.bat"
-            }
+            new ProcessBuilder("cmd", "/c", "$rootDir\\restart-server.bat")
+                .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                .redirectError(ProcessBuilder.Redirect.DISCARD)
+                .start()
         } else {
-            exec {
-                commandLine "bash", "restart-server.sh"
-            }
+            new ProcessBuilder("bash", "$rootDir/restart-server.sh")
+                .redirectOutput(ProcessBuilder.Redirect.DISCARD)
+                .redirectError(ProcessBuilder.Redirect.DISCARD)
+                .start()
         }
     }
 }

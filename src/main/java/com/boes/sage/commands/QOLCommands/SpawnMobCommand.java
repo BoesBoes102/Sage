@@ -1,30 +1,28 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("spawnmob")
-@Description("Spawn mobs at your location")
-@CommandPermission("sage.spawnmob")
-public class SpawnMobCommand extends BaseCommand {
+public class SpawnMobCommand {
 
     private final Sage plugin;
 
     public SpawnMobCommand(Sage plugin) {
         this.plugin = plugin;
     }
-    @Default
-    @CommandCompletion("@entitytypes 1|5|10|20")
-    @Syntax("<entityType> [amount]")
-    public void onCommand(Player player, EntityType entityType, @Optional Integer amount) {
-        if (amount == null) {
-            amount = 1;
-        }
 
+    @Command("spawnmob <entityType> <amount>")
+    @Permission("sage.spawnmob")
+    public void onCommand(
+            Player player,
+            @Argument(value = "entityType", suggestions = "entitytypes") EntityType entityType,
+            @Argument(value = "amount", suggestions = "spawnAmounts") int amount
+    ) {
         if (amount < 1) {
             player.sendMessage("§cAmount must be at least 1!");
             return;

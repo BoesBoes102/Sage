@@ -1,64 +1,60 @@
 package com.boes.sage.features.freeze.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandCompletion;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Optional;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("freeze")
-@CommandPermission("sage.freeze")
-public class FreezeCommand extends BaseCommand {
+public class FreezeCommand {
     private final Sage plugin;
 
     public FreezeCommand(Sage plugin) {
         this.plugin = plugin;
     }
 
-    @Default
-    @CommandCompletion("@players")
-    @Syntax("[player]")
-    public void onCommand(Player player, @Optional String targetName) {
+    @Command("freeze [player]")
+    @Permission("sage.freeze")
+    public void onCommand(
+            Player issuer,
+            @Argument(value = "player", suggestions = "players") String targetName
+    ) {
         if (targetName == null) {
-            if (plugin.getFreezeService().isFrozen(player) && player.hasPermission("*")) {
-                plugin.getFreezeService().unfreeze(player);
-                player.sendMessage(ChatColor.GREEN + "You have been unfrozen.");
+            if (plugin.getFreezeService().isFrozen(issuer) && issuer.hasPermission("*")) {
+                plugin.getFreezeService().unfreeze(issuer);
+                issuer.sendMessage(ChatColor.GREEN + "You have been unfrozen.");
                 return;
             }
 
-            player.sendMessage(ChatColor.RED + "You can only freeze other players.");
+            issuer.sendMessage(ChatColor.RED + "You can only freeze other players.");
             return;
         }
 
         Player target = Bukkit.getPlayerExact(targetName);
         if (target == null) {
-            player.sendMessage(ChatColor.RED + "Player not found.");
+            issuer.sendMessage(ChatColor.RED + "Player not found.");
             return;
         }
 
-        if (target.getUniqueId().equals(player.getUniqueId())) {
-            if (plugin.getFreezeService().isFrozen(player) && player.hasPermission("*")) {
-                plugin.getFreezeService().unfreeze(player);
-                player.sendMessage(ChatColor.GREEN + "You have been unfrozen.");
+        if (target.getUniqueId().equals(issuer.getUniqueId())) {
+            if (plugin.getFreezeService().isFrozen(issuer) && issuer.hasPermission("*")) {
+                plugin.getFreezeService().unfreeze(issuer);
+                issuer.sendMessage(ChatColor.GREEN + "You have been unfrozen.");
                 return;
             }
 
-            player.sendMessage(ChatColor.RED + "You can only freeze other players.");
+            issuer.sendMessage(ChatColor.RED + "You can only freeze other players.");
             return;
         }
 
         boolean frozen = plugin.getFreezeService().toggleFreeze(target);
         if (frozen) {
-            player.sendMessage(ChatColor.GREEN + target.getName() + " has been frozen.");
+            issuer.sendMessage(ChatColor.GREEN + target.getName() + " has been frozen.");
             return;
         }
 
-        player.sendMessage(ChatColor.GREEN + target.getName() + " has been unfrozen.");
+        issuer.sendMessage(ChatColor.GREEN + target.getName() + " has been unfrozen.");
     }
 }

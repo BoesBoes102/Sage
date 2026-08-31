@@ -1,17 +1,14 @@
 package com.boes.sage.features.notification.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.ChatColor;
 import org.bukkit.command.CommandSender;
+import org.incendo.cloud.annotation.specifier.Greedy;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("staffbroadcast")
-@CommandPermission("sage.staffbroadcast")
-public class StaffBroadcastCommand extends BaseCommand {
+public class StaffBroadcastCommand {
 
     private final Sage plugin;
 
@@ -19,15 +16,13 @@ public class StaffBroadcastCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Default
-    @Syntax("<message>")
-    public void onCommand(CommandSender sender, String[] messageArgs) {
-        if (messageArgs.length == 0) {
-            sender.sendMessage("\u00A7cUsage: /staffbroadcast <message>");
-            return;
-        }
-
-        String message = ChatColor.translateAlternateColorCodes('&', String.join(" ", messageArgs));
-        plugin.getNotificationService().sendStaffAnnouncement(sender.getName(), message);
+    @Command("staffbroadcast <message>")
+    @Permission("sage.staffbroadcast")
+    public void onCommand(
+            CommandSender sender,
+            @Argument(value = "message", suggestions = "none") @Greedy String message
+    ) {
+        String processedMessage = ChatColor.translateAlternateColorCodes('&', message);
+        plugin.getNotificationService().sendStaffAnnouncement(sender.getName(), processedMessage);
     }
 }

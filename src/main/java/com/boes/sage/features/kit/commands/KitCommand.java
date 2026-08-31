@@ -1,27 +1,20 @@
 package com.boes.sage.features.kit.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandCompletion;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Conditions;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Subcommand;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import com.boes.sage.features.kit.gui.KitGUI;
 import com.boes.sage.features.kit.KitService;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
-import org.bukkit.inventory.PlayerInventory;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
 import java.util.HashMap;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-@CommandAlias("kit")
-public class KitCommand extends BaseCommand {
+public class KitCommand {
     private final Sage plugin;
     private final KitService kitManager;
     private final Map<UUID, String> kitBeingCreated = new HashMap<>();
@@ -35,19 +28,14 @@ public class KitCommand extends BaseCommand {
         this.kitManager = plugin.getKitService();
     }
 
-    @Default
-    @Conditions("player-only")
-    @Syntax("")
+    @Command("kit")
     public void onDefault(Player player) {
         KitGUI gui = new KitGUI(plugin, player);
         gui.open();
     }
 
-    @Subcommand("claim")
-    @Conditions("player-only")
-    @Syntax("<kit>")
-    @CommandCompletion("@kits")
-    public void onClaim(Player player, String kitName) {
+    @Command("kit claim <kit>")
+    public void onClaim(Player player, @Argument(value = "kit", suggestions = "kits") String kitName) {
         if (!kitManager.kitExists(kitName)) {
             player.sendMessage("§cKit '" + kitName + "' does not exist!");
             return;
@@ -68,11 +56,9 @@ public class KitCommand extends BaseCommand {
         player.sendMessage("§a§lKit '" + kitName + "' claimed!");
     }
 
-    @Subcommand("create")
-    @Conditions("player-only")
-    @CommandPermission("sage.kit.create")
-    @Syntax("<name> <duration>")
-    public void onCreate(Player player, String kitName, String duration) {
+    @Command("kit create <name> <duration>")
+    @Permission("sage.kit.create")
+    public void onCreate(Player player, @Argument("name") String kitName, @Argument("duration") String duration) {
         if (kitManager.kitExists(kitName)) {
             player.sendMessage("§cKit '" + kitName + "' already exists!");
             return;
@@ -100,11 +86,9 @@ public class KitCommand extends BaseCommand {
         player.sendMessage("§7Or cancel with: §e/kit cancelcreate");
     }
 
-    @Subcommand("delete")
-    @CommandPermission("sage.kit.delete")
-    @Syntax("<kit>")
-    @CommandCompletion("@kits")
-    public void onDelete(Player player, String kitName) {
+    @Command("kit delete <kit>")
+    @Permission("sage.kit.delete")
+    public void onDelete(Player player, @Argument(value = "kit", suggestions = "kits") String kitName) {
         if (!kitManager.kitExists(kitName)) {
             player.sendMessage("§cKit '" + kitName + "' does not exist!");
             return;
@@ -114,18 +98,14 @@ public class KitCommand extends BaseCommand {
         player.sendMessage("§a§lKit '" + kitName + "' deleted!");
     }
 
-    @Subcommand("gui")
-    @Conditions("player-only")
-    @Syntax("")
+    @Command("kit gui")
     public void onGui(Player player) {
         KitGUI gui = new KitGUI(plugin, player);
         gui.open();
     }
 
-    @Subcommand("confirmcreate")
-    @Conditions("player-only")
-    @CommandPermission("sage.kit.create")
-    @Syntax("")
+    @Command("kit confirmcreate")
+    @Permission("sage.kit.create")
     public void onConfirmCreate(Player player) {
         UUID uuid = player.getUniqueId();
 
@@ -158,10 +138,8 @@ public class KitCommand extends BaseCommand {
         player.sendMessage("§7Duration: §b" + duration);
     }
 
-    @Subcommand("cancelcreate")
-    @Conditions("player-only")
-    @CommandPermission("sage.kit.create")
-    @Syntax("")
+    @Command("kit cancelcreate")
+    @Permission("sage.kit.create")
     public void onCancelCreate(Player player) {
         UUID uuid = player.getUniqueId();
 

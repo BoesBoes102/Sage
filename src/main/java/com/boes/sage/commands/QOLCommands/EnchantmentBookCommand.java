@@ -1,28 +1,31 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
 import com.boes.sage.Sage;
 import org.bukkit.Material;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.EnchantmentStorageMeta;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("enchantmentbook")
-@Description("Create enchanted books")
-@CommandPermission("sage.enchantmentbook")
-public class EnchantmentBookCommand extends BaseCommand {
+public class EnchantmentBookCommand {
 
     private final Sage plugin;
 
     public EnchantmentBookCommand(Sage plugin) {
         this.plugin = plugin;
     }
-    @Default
-    @Syntax("<enchantment> <level> <amount>")
-    @CommandCompletion("@enchantments 1|2|3|4|5 1|10|64")
-    public void onCommand(Player player, Enchantment enchantment, int level, int amount) {
+
+    @Command("enchantmentbook <enchantment> <level> <amount>")
+    @Permission("sage.enchantmentbook")
+    public void onCommand(
+            Player player,
+            @Argument(value = "enchantment", suggestions = "enchantments") Enchantment enchantment,
+            @Argument("level") int level,
+            @Argument("amount") int amount
+    ) {
         if (level < 1) {
             player.sendMessage("§cLevel must be at least 1!");
             return;

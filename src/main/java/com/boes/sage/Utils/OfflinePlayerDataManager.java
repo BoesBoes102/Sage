@@ -1,24 +1,31 @@
 package com.boes.sage.Utils;
 
+import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
-import org.bukkit.Material;
-import org.bukkit.configuration.file.FileConfiguration;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.io.BukkitObjectInputStream;
+import org.bukkit.util.io.BukkitObjectOutputStream;
 
-import java.io.*;
-import java.util.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.UUID;
 
 public class OfflinePlayerDataManager {
     private static final Map<UUID, OfflinePlayerInventoryData> editedInventories = new HashMap<>();
-    private static final File DATA_FOLDER = new File(Bukkit.getServer().getWorldContainer(), "offline-inventory-data");
+    private static DatabaseManager databaseManager;
 
-    static {
-        if (!DATA_FOLDER.exists()) {
-            DATA_FOLDER.mkdirs();
-        }
+    public static void init(Sage plugin) {
+        databaseManager = plugin.getDatabaseManager();
     }
 
     public static Inventory getOfflinePlayerEnderChest(String playerName) {
@@ -73,27 +80,42 @@ public class OfflinePlayerDataManager {
     public static void syncOnPlayerJoin(Player player) {
         UUID uuid = player.getUniqueId();
 
-        if (editedInventories.containsKey(uuid)) {
-            OfflinePlayerInventoryData data = editedInventories.get(uuid);
+        OfflinePlayerInventoryData data = editedInventories.get(uuid);
+        if (data == null) {
+            return;
+        }
 
+        Bukkit.getScheduler().runTaskAsynchronously(Sage.getInstance(), () -> {
             try {
                 if (data.type.equals("ENDER_CHEST")) {
                     ItemStack[] enderItems = loadEnderChestFromFile(uuid);
-                    player.getEnderChest().setContents(enderItems);
+                    Bukkit.getScheduler().runTask(Sage.getInstance(), () -> {
+                        if (player.isOnline()) {
+                            player.getEnderChest().setContents(enderItems);
+                        }
+                        editedInventories.remove(uuid);
+                    });
                 } else if (data.type.equals("INVENTORY")) {
                     ItemStack[] invItems = loadInventoryFromFile(uuid);
                     ItemStack[] armor = loadArmorFromFile(uuid);
                     ItemStack offhand = loadOffhandFromFile(uuid);
 
-                    player.getInventory().setContents(invItems);
-                    player.getInventory().setArmorContents(armor);
-                    player.getInventory().setItemInOffHand(offhand);
+                    Bukkit.getScheduler().runTask(Sage.getInstance(), () -> {
+                        if (player.isOnline()) {
+                            player.getInventory().setContents(invItems);
+                            player.getInventory().setArmorContents(armor);
+                            player.getInventory().setItemInOffHand(offhand);
+                        }
+                        editedInventories.remove(uuid);
+                    });
+                } else {
+                    editedInventories.remove(uuid);
                 }
-                editedInventories.remove(uuid);
             } catch (Exception e) {
                 e.printStackTrace();
+                editedInventories.remove(uuid);
             }
-        }
+        });
     }
 
     public static void clearCache(UUID uuid) {
@@ -122,80 +144,70 @@ public class OfflinePlayerDataManager {
     }
 
     private static ItemStack[] loadEnderChestFromFile(UUID uuid) throws Exception {
-        File file = getEnderChestFile(uuid);
-        if (!file.exists()) {
-            return new ItemStack[27];
-        }
-
-        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
-        ItemStack[] items = new ItemStack[27];
-
-        for (int i = 0; i < 27; i++) {
-            if (config.contains("items." + i)) {
-                items[i] = config.getItemStack("items." + i);
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT serialized FROM offline_inventory_enderchest WHERE uuid = ?")) {
+            statement.setString(1, uuid.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next() || resultSet.getString("serialized") == null) {
+                    return new ItemStack[27];
+                }
+                return deserializeItemStackArray(resultSet.getString("serialized"));
             }
         }
-
-        return items;
     }
 
     public static ItemStack[] loadInventoryFromFile(UUID uuid) throws Exception {
-        File file = getInventoryFile(uuid);
-        if (!file.exists()) {
-            return new ItemStack[36];
-        }
-
-        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
-        ItemStack[] items = new ItemStack[36];
-
-        for (int i = 0; i < 36; i++) {
-            if (config.contains("items." + i)) {
-                items[i] = config.getItemStack("items." + i);
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT items FROM offline_inventory_data WHERE uuid = ?")) {
+            statement.setString(1, uuid.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next() || resultSet.getString("items") == null) {
+                    return new ItemStack[36];
+                }
+                return deserializeItemStackArray(resultSet.getString("items"));
             }
         }
-
-        return items;
     }
 
     public static ItemStack[] loadArmorFromFile(UUID uuid) throws Exception {
-        File file = getInventoryFile(uuid);
-        if (!file.exists()) {
-            return new ItemStack[4];
-        }
-
-        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
-        ItemStack[] armor = new ItemStack[4];
-
-        for (int i = 0; i < 4; i++) {
-            if (config.contains("armor." + i)) {
-                armor[i] = config.getItemStack("armor." + i);
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT armor FROM offline_inventory_data WHERE uuid = ?")) {
+            statement.setString(1, uuid.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next() || resultSet.getString("armor") == null) {
+                    return new ItemStack[4];
+                }
+                return deserializeItemStackArray(resultSet.getString("armor"));
             }
         }
-
-        return armor;
     }
 
     public static ItemStack loadOffhandFromFile(UUID uuid) throws Exception {
-        File file = getInventoryFile(uuid);
-        if (!file.exists()) {
-            return null;
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT offhand FROM offline_inventory_data WHERE uuid = ?")) {
+            statement.setString(1, uuid.toString());
+            try (ResultSet resultSet = statement.executeQuery()) {
+                if (!resultSet.next() || resultSet.getString("offhand") == null) {
+                    return null;
+                }
+                return deserializeItemStack(resultSet.getString("offhand"));
+            }
         }
-
-        FileConfiguration config = YamlConfiguration.loadConfiguration(file);
-        return config.getItemStack("offhand");
     }
 
     private static void saveEnderChestToFile(UUID uuid, ItemStack[] items) throws Exception {
-        File file = getEnderChestFile(uuid);
-        FileConfiguration config = new YamlConfiguration();
-
-        for (int i = 0; i < items.length; i++) {
-            if (items[i] != null && items[i].getType() != Material.AIR) {
-                config.set("items." + i, items[i]);
-            }
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "INSERT INTO offline_inventory_enderchest (uuid, serialized) VALUES (?, ?) " +
+                     "ON CONFLICT(uuid) DO UPDATE SET serialized = excluded.serialized")) {
+            statement.setString(1, uuid.toString());
+            statement.setString(2, serializeItemStackArray(items));
+            statement.executeUpdate();
         }
-
-        config.save(file);
     }
 
     public static void saveOfflineEnderChest(UUID uuid, ItemStack[] items) throws Exception {
@@ -208,29 +220,14 @@ public class OfflinePlayerDataManager {
     }
 
     public static void saveInventoryToFile(UUID uuid, ItemStack[] items) throws Exception {
-        File file = getInventoryFile(uuid);
-        FileConfiguration config;
-
-        // Load existing config to preserve armor and offhand
-        if (file.exists()) {
-            config = YamlConfiguration.loadConfiguration(file);
-        } else {
-            config = new YamlConfiguration();
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "INSERT INTO offline_inventory_data (uuid, items) VALUES (?, ?) " +
+                     "ON CONFLICT(uuid) DO UPDATE SET items = excluded.items")) {
+            statement.setString(1, uuid.toString());
+            statement.setString(2, serializeItemStackArray(items));
+            statement.executeUpdate();
         }
-
-        // Clear old inventory items
-        for (int i = 0; i < 36; i++) {
-            config.set("items." + i, null);
-        }
-
-        // Save new inventory items
-        for (int i = 0; i < items.length && i < 36; i++) {
-            if (items[i] != null && items[i].getType() != Material.AIR) {
-                config.set("items." + i, items[i]);
-            }
-        }
-
-        config.save(file);
 
         // Mark as edited
         if (!editedInventories.containsKey(uuid)) {
@@ -239,28 +236,14 @@ public class OfflinePlayerDataManager {
     }
 
     public static void saveArmorToFile(UUID uuid, ItemStack[] armor) throws Exception {
-        File file = getInventoryFile(uuid);
-        FileConfiguration config;
-
-        if (file.exists()) {
-            config = YamlConfiguration.loadConfiguration(file);
-        } else {
-            config = new YamlConfiguration();
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "INSERT INTO offline_inventory_data (uuid, armor) VALUES (?, ?) " +
+                     "ON CONFLICT(uuid) DO UPDATE SET armor = excluded.armor")) {
+            statement.setString(1, uuid.toString());
+            statement.setString(2, serializeItemStackArray(armor));
+            statement.executeUpdate();
         }
-
-        // Clear old armor
-        for (int i = 0; i < 4; i++) {
-            config.set("armor." + i, null);
-        }
-
-        // Save new armor
-        for (int i = 0; i < armor.length && i < 4; i++) {
-            if (armor[i] != null && armor[i].getType() != Material.AIR) {
-                config.set("armor." + i, armor[i]);
-            }
-        }
-
-        config.save(file);
 
         // Mark as edited
         if (!editedInventories.containsKey(uuid)) {
@@ -269,22 +252,14 @@ public class OfflinePlayerDataManager {
     }
 
     public static void saveOffhandToFile(UUID uuid, ItemStack offhand) throws Exception {
-        File file = getInventoryFile(uuid);
-        FileConfiguration config;
-
-        if (file.exists()) {
-            config = YamlConfiguration.loadConfiguration(file);
-        } else {
-            config = new YamlConfiguration();
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "INSERT INTO offline_inventory_data (uuid, offhand) VALUES (?, ?) " +
+                     "ON CONFLICT(uuid) DO UPDATE SET offhand = excluded.offhand")) {
+            statement.setString(1, uuid.toString());
+            statement.setString(2, offhand == null ? null : serializeItemStack(offhand));
+            statement.executeUpdate();
         }
-
-        config.set("offhand", null); // Clear old offhand
-
-        if (offhand != null && offhand.getType() != Material.AIR) {
-            config.set("offhand", offhand);
-        }
-
-        config.save(file);
 
         // Mark as edited
         if (!editedInventories.containsKey(uuid)) {
@@ -292,12 +267,46 @@ public class OfflinePlayerDataManager {
         }
     }
 
-    private static File getEnderChestFile(UUID uuid) {
-        return new File(DATA_FOLDER, uuid + "-ender-chest.yml");
+    private static String serializeItemStackArray(ItemStack[] items) {
+        try {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            BukkitObjectOutputStream dataOutput = new BukkitObjectOutputStream(outputStream);
+            dataOutput.writeObject(items);
+            dataOutput.close();
+            return Base64.getEncoder().encodeToString(outputStream.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to serialize items", e);
+        }
     }
 
-    private static File getInventoryFile(UUID uuid) {
-        return new File(DATA_FOLDER, uuid + "-inventory.yml");
+    private static ItemStack[] deserializeItemStackArray(String serialized) throws Exception {
+        byte[] decoded = Base64.getMimeDecoder().decode(serialized);
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(decoded);
+        BukkitObjectInputStream dataInput = new BukkitObjectInputStream(inputStream);
+        ItemStack[] items = (ItemStack[]) dataInput.readObject();
+        dataInput.close();
+        return items;
+    }
+
+    private static String serializeItemStack(ItemStack item) {
+        try {
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            BukkitObjectOutputStream dataOutput = new BukkitObjectOutputStream(outputStream);
+            dataOutput.writeObject(item);
+            dataOutput.close();
+            return Base64.getEncoder().encodeToString(outputStream.toByteArray());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to serialize item", e);
+        }
+    }
+
+    private static ItemStack deserializeItemStack(String serialized) throws Exception {
+        byte[] decoded = Base64.getMimeDecoder().decode(serialized);
+        ByteArrayInputStream inputStream = new ByteArrayInputStream(decoded);
+        BukkitObjectInputStream dataInput = new BukkitObjectInputStream(inputStream);
+        ItemStack item = (ItemStack) dataInput.readObject();
+        dataInput.close();
+        return item;
     }
 
     private static class OfflinePlayerInventoryData {

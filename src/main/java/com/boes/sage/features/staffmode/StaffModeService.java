@@ -1,26 +1,29 @@
 package com.boes.sage.features.staffmode;
 
 import com.boes.sage.Sage;
-import com.boes.sage.Utils.JsonStorageManager;
+import com.boes.sage.Utils.DatabaseManager;
 import com.boes.sage.features.staffmode.data.StaffModeData;
-import com.google.gson.JsonObject;
+import org.bukkit.Bukkit;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 
-import java.io.File;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.util.*;
 
 public class StaffModeService {
     private final Sage plugin;
     private final Map<UUID, StaffModeData> staffModePlayers;
-    private final JsonStorageManager storageManager;
+    private final DatabaseManager databaseManager;
 
     public StaffModeService(Sage plugin) {
         this.plugin = plugin;
         this.staffModePlayers = new HashMap<>();
-        this.storageManager = new JsonStorageManager(new File(plugin.getDataFolder(), "staffmode.json"));
+        this.databaseManager = plugin.getDatabaseManager();
 
         loadStaffModePlayers();
     }
@@ -99,63 +102,85 @@ public class StaffModeService {
     }
 
     private void saveStaffModeData(UUID uuid, StaffModeData data) {
-        JsonObject json = storageManager.load();
-        JsonObject playerData = new JsonObject();
+        Location location = data.getLocation();
+        String worldName = Objects.requireNonNull(location.getWorld()).getName();
+        double x = location.getX();
+        double y = location.getY();
+        double z = location.getZ();
+        float yaw = location.getYaw();
+        float pitch = location.getPitch();
+        String gameMode = data.getGameMode().name();
 
-        JsonObject location = new JsonObject();
-        location.addProperty("world", data.getLocation().getWorld().getName());
-        location.addProperty("x", data.getLocation().getX());
-        location.addProperty("y", data.getLocation().getY());
-        location.addProperty("z", data.getLocation().getZ());
-        location.addProperty("yaw", data.getLocation().getYaw());
-        location.addProperty("pitch", data.getLocation().getPitch());
-
-        playerData.add("location", location);
-        playerData.addProperty("gamemode", data.getGameMode().name());
-
-        json.add(uuid.toString(), playerData);
-        storageManager.save(json);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try (Connection connection = databaseManager.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(
+                         "INSERT INTO staffmode (uuid, world, x, y, z, yaw, pitch, gamemode) VALUES (?, ?, ?, ?, ?, ?, ?, ?) " +
+                         "ON CONFLICT(uuid) DO UPDATE SET world = excluded.world, x = excluded.x, y = excluded.y, " +
+                         "z = excluded.z, yaw = excluded.yaw, pitch = excluded.pitch, gamemode = excluded.gamemode")) {
+                statement.setString(1, uuid.toString());
+                statement.setString(2, worldName);
+                statement.setDouble(3, x);
+                statement.setDouble(4, y);
+                statement.setDouble(5, z);
+                statement.setFloat(6, yaw);
+                statement.setFloat(7, pitch);
+                statement.setString(8, gameMode);
+                statement.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().severe("Failed to save staff mode data for " + uuid + ": " + e.getMessage());
+            }
+        });
     }
 
     private void removeStaffModeData(UUID uuid) {
-        JsonObject json = storageManager.load();
-        json.remove(uuid.toString());
-        storageManager.save(json);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try (Connection connection = databaseManager.getConnection();
+                 PreparedStatement statement = connection.prepareStatement("DELETE FROM staffmode WHERE uuid = ?")) {
+                statement.setString(1, uuid.toString());
+                statement.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().severe("Failed to remove staff mode data for " + uuid + ": " + e.getMessage());
+            }
+        });
     }
 
     private void loadStaffModePlayers() {
-        JsonObject json = storageManager.load();
+        try (Connection connection = databaseManager.getConnection();
+             PreparedStatement statement = connection.prepareStatement(
+                     "SELECT uuid, world, x, y, z, yaw, pitch, gamemode FROM staffmode");
+             ResultSet resultSet = statement.executeQuery()) {
 
-        for (String key : json.keySet()) {
-            try {
-                UUID uuid = UUID.fromString(key);
-                Player player = plugin.getServer().getPlayer(uuid);
+            while (resultSet.next()) {
+                String key = resultSet.getString("uuid");
+                try {
+                    UUID uuid = UUID.fromString(key);
+                    Player player = plugin.getServer().getPlayer(uuid);
 
-                if (player != null && player.isOnline()) {
-                    JsonObject playerData = json.getAsJsonObject(key);
-                    JsonObject locationData = playerData.getAsJsonObject("location");
+                    if (player != null && player.isOnline()) {
+                        String worldName = resultSet.getString("world");
+                        double x = resultSet.getDouble("x");
+                        double y = resultSet.getDouble("y");
+                        double z = resultSet.getDouble("z");
+                        float yaw = resultSet.getFloat("yaw");
+                        float pitch = resultSet.getFloat("pitch");
 
-                    String worldName = locationData.get("world").getAsString();
-                    double x = locationData.get("x").getAsDouble();
-                    double y = locationData.get("y").getAsDouble();
-                    double z = locationData.get("z").getAsDouble();
-                    float yaw = locationData.get("yaw").getAsFloat();
-                    float pitch = locationData.get("pitch").getAsFloat();
+                        Location location = new Location(plugin.getServer().getWorld(worldName), x, y, z, yaw, pitch);
 
-                    Location location = new Location(plugin.getServer().getWorld(worldName), x, y, z, yaw, pitch);
+                        GameMode gameMode = GameMode.valueOf(resultSet.getString("gamemode"));
 
-                    GameMode gameMode = GameMode.valueOf(playerData.get("gamemode").getAsString());
+                        StaffModeData data = new StaffModeData(location, new ItemStack[0], new ItemStack[0], gameMode);
+                        staffModePlayers.put(uuid, data);
 
-                    StaffModeData data = new StaffModeData(location, new ItemStack[0], new ItemStack[0], gameMode);
-                    staffModePlayers.put(uuid, data);
-
-                    player.setGameMode(GameMode.CREATIVE);
-                    player.setAllowFlight(true);
-                    player.setFlying(true);
+                        player.setGameMode(GameMode.CREATIVE);
+                        player.setAllowFlight(true);
+                        player.setFlying(true);
+                    }
+                } catch (Exception e) {
+                    plugin.getLogger().warning("Failed to load staff mode data for " + key);
                 }
-            } catch (Exception e) {
-                plugin.getLogger().warning("Failed to load staff mode data for " + key);
             }
+        } catch (SQLException e) {
+            throw new RuntimeException("Failed to load staff mode players", e);
         }
     }
 

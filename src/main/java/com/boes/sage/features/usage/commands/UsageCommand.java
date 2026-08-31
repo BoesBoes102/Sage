@@ -1,24 +1,16 @@
 package com.boes.sage.features.usage.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Description;
-import co.aikar.commands.annotation.Subcommand;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
 import java.lang.management.MemoryUsage;
 import java.lang.management.OperatingSystemMXBean;
 
-@CommandAlias("usage")
-@Description("Check server resource usage")
-@CommandPermission("sage.usage")
-public class UsageCommand extends BaseCommand {
+public class UsageCommand {
 
     private final Sage plugin;
 
@@ -26,13 +18,14 @@ public class UsageCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Default
-    @Syntax("<ram|cpu|bar>")
+    @Command("usage")
+    @Permission("sage.usage")
     public void onDefault(Player player) {
         player.sendMessage("§cUsage: /usage <ram|cpu>");
     }
 
-    @Subcommand("ram")
+    @Command("usage ram")
+    @Permission("sage.usage")
     public void onRam(Player player) {
         MemoryMXBean memoryBean = ManagementFactory.getMemoryMXBean();
         MemoryUsage heapMemory = memoryBean.getHeapMemoryUsage();
@@ -50,7 +43,8 @@ public class UsageCommand extends BaseCommand {
         player.sendMessage("§7━━━━━━━━━━━━━━━━━━━━━━");
     }
 
-    @Subcommand("cpu")
+    @Command("usage cpu")
+    @Permission("sage.usage")
     public void onCpu(Player player) {
         OperatingSystemMXBean osBean = ManagementFactory.getOperatingSystemMXBean();
 
@@ -77,7 +71,8 @@ public class UsageCommand extends BaseCommand {
         }
     }
 
-    @Subcommand("bar")
+    @Command("usage bar")
+    @Permission("sage.usage")
     public void onBar(Player player) {
         if (plugin.getUsageBossBarService().hasBossBar(player.getUniqueId())) {
             plugin.getUsageBossBarService().removeBossBar(player);

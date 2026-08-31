@@ -1,29 +1,28 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("c|clear")
-@Description("Clear your inventory or another player's inventory")
-@CommandPermission("sage.clear")
-public class ClearCommand extends BaseCommand {
+public class ClearCommand {
 
     private final Sage plugin;
 
     public ClearCommand(Sage plugin) {
         this.plugin = plugin;
     }
-    @Default
-    @Syntax("[player]")
-    @CommandCompletion("@players")
-    public void onCommand(Player sender, @Optional String targetName) {
+
+    @Command("c [player]")
+    @Command("clear [player]")
+    @Permission("sage.clear")
+    public void onCommand(Player sender, @Argument(value = "player", suggestions = "players") String targetName) {
         Player target = sender;
-        
+
         if (targetName != null) {
             target = Bukkit.getPlayer(targetName);
             if (target == null) {

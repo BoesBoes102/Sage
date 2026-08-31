@@ -1,16 +1,5 @@
 package com.boes.sage.features.itemedit.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CatchUnknown;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandCompletion;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Description;
-import co.aikar.commands.annotation.Optional;
-import co.aikar.commands.annotation.Single;
-import co.aikar.commands.annotation.Subcommand;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import com.boes.sage.features.itemedit.ItemEditService;
 import org.bukkit.Bukkit;
@@ -41,6 +30,9 @@ import org.bukkit.inventory.meta.trim.TrimMaterial;
 import org.bukkit.inventory.meta.trim.TrimPattern;
 import org.bukkit.potion.PotionEffect;
 import org.bukkit.potion.PotionEffectType;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
@@ -51,10 +43,8 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 
-@CommandAlias("itemedit|ie")
-@Description("Edit the item in your main hand")
-@CommandPermission("sage.itemedit")
-public class ItemEditCommand extends BaseCommand {
+@Permission("sage.itemedit")
+public class ItemEditCommand {
 
     private static final List<ItemFlag> ALL_ITEM_FLAGS = Arrays.asList(ItemFlag.values());
 
@@ -66,8 +56,8 @@ public class ItemEditCommand extends BaseCommand {
         this.service = plugin.getItemEditService();
     }
 
-    @Default
-    @CatchUnknown
+    @Command("itemedit")
+    @Command("ie")
     public void showHelp(Player player) {
         player.sendMessage("§e/itemedit rename <text>");
         player.sendMessage("§e/itemedit lore <add|set|insert|remove|clear|copy|paste>");
@@ -96,9 +86,9 @@ public class ItemEditCommand extends BaseCommand {
         player.sendMessage("§e/itemedit maxdurability <value|clear>");
     }
 
-    @Subcommand("rename")
-    @Syntax("[text]")
-    public void rename(Player player, @Optional String text) {
+    @Command("itemedit rename [text]")
+    @Command("ie rename [text]")
+    public void rename(Player player, @Argument("text") String text) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -112,9 +102,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Updated the display name.");
     }
 
-    @Subcommand("amount")
-    @CommandCompletion("1|16|32|64")
-    public void amount(Player player, int amount) {
+    @Command("itemedit amount <amount>")
+    @Command("ie amount <amount>")
+    public void amount(Player player, @Argument("amount") int amount) {
         ItemStack item = requireItem(player);
         if (item == null) {
             return;
@@ -132,9 +122,9 @@ public class ItemEditCommand extends BaseCommand {
         player.sendMessage("§aUpdated the stack amount to §e" + amount + "§a.");
     }
 
-    @Subcommand("type")
-    @CommandCompletion("@materials")
-    public void type(Player player, Material material) {
+    @Command("itemedit type <material>")
+    @Command("ie type <material>")
+    public void type(Player player, @Argument(value = "material", suggestions = "materials") Material material) {
         ItemStack item = requireItem(player);
         if (item == null) {
             return;
@@ -143,9 +133,9 @@ public class ItemEditCommand extends BaseCommand {
         player.sendMessage("§aUpdated the item type to §e" + material.name().toLowerCase(Locale.ROOT) + "§a.");
     }
 
-    @Subcommand("damage")
-    @CommandCompletion("0|1|10|100")
-    public void damage(Player player, int damage) {
+    @Command("itemedit damage <damage>")
+    @Command("ie damage <damage>")
+    public void damage(Player player, @Argument("damage") int damage) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -162,9 +152,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Updated the item damage.");
     }
 
-    @Subcommand("repaircost")
-    @CommandCompletion("0|1|5|10")
-    public void repairCost(Player player, int repairCost) {
+    @Command("itemedit repaircost <repaircost>")
+    @Command("ie repaircost <repaircost>")
+    public void repairCost(Player player, @Argument("repaircost") int repairCost) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -180,8 +170,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Updated the repair cost.");
     }
 
-    @Subcommand("unbreakable")
-    public void unbreakable(Player player, boolean value) {
+    @Command("itemedit unbreakable <value>")
+    @Command("ie unbreakable <value>")
+    public void unbreakable(Player player, @Argument("value") boolean value) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -190,9 +181,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Set unbreakable to §e" + value + "§a.");
     }
 
-    @Subcommand("custommodeldata")
-    @CommandCompletion("1|100|1000")
-    public void customModelData(Player player, int value) {
+    @Command("itemedit custommodeldata <value>")
+    @Command("ie custommodeldata <value>")
+    public void customModelData(Player player, @Argument("value") int value) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -201,7 +192,8 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Updated custom model data.");
     }
 
-    @Subcommand("custommodeldata clear")
+    @Command("itemedit custommodeldata clear")
+    @Command("ie custommodeldata clear")
     public void clearCustomModelData(Player player) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
@@ -211,8 +203,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Cleared custom model data.");
     }
 
-    @Subcommand("itemmodel")
-    public void itemModel(Player player, @Single String keyText) {
+    @Command("itemedit itemmodel <key>")
+    @Command("ie itemmodel <key>")
+    public void itemModel(Player player, @Argument("key") String keyText) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -228,7 +221,8 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Updated the item model.");
     }
 
-    @Subcommand("itemmodel clear")
+    @Command("itemedit itemmodel clear")
+    @Command("ie itemmodel clear")
     public void clearItemModel(Player player) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
@@ -241,8 +235,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Cleared the item model.");
     }
 
-    @Subcommand("tooltipstyle")
-    public void tooltipStyle(Player player, @Single String keyText) {
+    @Command("itemedit tooltipstyle <key>")
+    @Command("ie tooltipstyle <key>")
+    public void tooltipStyle(Player player, @Argument("key") String keyText) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -258,7 +253,8 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Updated the tooltip style.");
     }
 
-    @Subcommand("tooltipstyle clear")
+    @Command("itemedit tooltipstyle clear")
+    @Command("ie tooltipstyle clear")
     public void clearTooltipStyle(Player player) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
@@ -271,8 +267,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Cleared the tooltip style.");
     }
 
-    @Subcommand("rarity")
-    public void rarity(Player player, String rarityName) {
+    @Command("itemedit rarity <rarity>")
+    @Command("ie rarity <rarity>")
+    public void rarity(Player player, @Argument(value = "rarity", suggestions = "itemRarities") String rarityName) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -289,7 +286,8 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Updated the item rarity.");
     }
 
-    @Subcommand("rarity clear")
+    @Command("itemedit rarity clear")
+    @Command("ie rarity clear")
     public void clearRarity(Player player) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
@@ -302,8 +300,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Cleared the item rarity.");
     }
 
-    @Subcommand("maxstacksize")
-    public void maxStackSize(Player player, int value) {
+    @Command("itemedit maxstacksize <value>")
+    @Command("ie maxstacksize <value>")
+    public void maxStackSize(Player player, @Argument("value") int value) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -319,7 +318,8 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Updated max stack size.");
     }
 
-    @Subcommand("maxstacksize clear")
+    @Command("itemedit maxstacksize clear")
+    @Command("ie maxstacksize clear")
     public void clearMaxStackSize(Player player) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
@@ -332,8 +332,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Cleared max stack size.");
     }
 
-    @Subcommand("maxdurability")
-    public void maxDurability(Player player, int value) {
+    @Command("itemedit maxdurability <value>")
+    @Command("ie maxdurability <value>")
+    public void maxDurability(Player player, @Argument("value") int value) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -349,7 +350,8 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Updated max durability.");
     }
 
-    @Subcommand("maxdurability clear")
+    @Command("itemedit maxdurability clear")
+    @Command("ie maxdurability clear")
     public void clearMaxDurability(Player player) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
@@ -363,8 +365,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Cleared max durability.");
     }
 
-    @Subcommand("hidetooltip")
-    public void hideTooltip(Player player, boolean value) {
+    @Command("itemedit hidetooltip <value>")
+    @Command("ie hidetooltip <value>")
+    public void hideTooltip(Player player, @Argument("value") boolean value) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -376,8 +379,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Set hide tooltip to §e" + value + "§a.");
     }
 
-    @Subcommand("fireresistant")
-    public void fireResistant(Player player, boolean value) {
+    @Command("itemedit fireresistant <value>")
+    @Command("ie fireresistant <value>")
+    public void fireResistant(Player player, @Argument("value") boolean value) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -389,8 +393,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Set fire resistant to §e" + value + "§a.");
     }
 
-    @Subcommand("glider")
-    public void glider(Player player, boolean value) {
+    @Command("itemedit glider <value>")
+    @Command("ie glider <value>")
+    public void glider(Player player, @Argument("value") boolean value) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -402,22 +407,39 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Set glider to §e" + value + "§a.");
     }
 
-    @Subcommand("skullowner")
-    public void skullOwner(Player player, String ownerName) {
+    @Command("itemedit skullowner <owner>")
+    @Command("ie skullowner <owner>")
+    public void skullOwner(Player player, @Argument(value = "owner", suggestions = "players") String ownerName) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
         }
-        if (!(meta instanceof SkullMeta skullMeta)) {
+        if (!(meta instanceof SkullMeta)) {
             player.sendMessage("§cThat item is not a player head.");
             return;
         }
-        skullMeta.setOwningPlayer(Bukkit.getOfflinePlayer(ownerName));
-        applyMeta(player, meta, "Updated the skull owner.");
+
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            org.bukkit.OfflinePlayer owner = Bukkit.getOfflinePlayer(ownerName);
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!player.isOnline()) {
+                    return;
+                }
+                ItemMeta currentMeta = requireMeta(player);
+                if (!(currentMeta instanceof SkullMeta currentSkullMeta)) {
+                    player.sendMessage("§cThat item is not a player head.");
+                    return;
+                }
+                currentSkullMeta.setOwningPlayer(owner);
+                applyMeta(player, currentSkullMeta, "Updated the skull owner.");
+            });
+        });
     }
 
-    @Subcommand("glow")
-    public void glow(Player player, boolean value) {
+    @Command("itemedit glow <value>")
+    @Command("ie glow <value>")
+    public void glow(Player player, @Argument("value") boolean value) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -432,9 +454,13 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Set glow to §e" + value + "§a.");
     }
 
-    @Subcommand("enchant add")
-    @CommandCompletion("@enchantments 1|2|3|4|5")
-    public void addEnchant(Player player, Enchantment enchantment, int level) {
+    @Command("itemedit enchant add <enchantment> <level>")
+    @Command("ie enchant add <enchantment> <level>")
+    public void addEnchant(
+            Player player,
+            @Argument(value = "enchantment", suggestions = "enchantments") Enchantment enchantment,
+            @Argument("level") int level
+    ) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -447,9 +473,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Added the enchantment.");
     }
 
-    @Subcommand("enchant remove")
-    @CommandCompletion("@enchantments")
-    public void removeEnchant(Player player, Enchantment enchantment) {
+    @Command("itemedit enchant remove <enchantment>")
+    @Command("ie enchant remove <enchantment>")
+    public void removeEnchant(Player player, @Argument(value = "enchantment", suggestions = "enchantments") Enchantment enchantment) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -458,7 +484,8 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Removed the enchantment.");
     }
 
-    @Subcommand("enchant clear")
+    @Command("itemedit enchant clear")
+    @Command("ie enchant clear")
     public void clearEnchants(Player player) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
@@ -471,8 +498,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Cleared all enchantments.");
     }
 
-    @Subcommand("flags add")
-    public void addFlag(Player player, String flagName) {
+    @Command("itemedit flags add <flag>")
+    @Command("ie flags add <flag>")
+    public void addFlag(Player player, @Argument(value = "flag", suggestions = "itemflags") String flagName) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -486,8 +514,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Added item flag §e" + flag.name() + "§a.");
     }
 
-    @Subcommand("flags remove")
-    public void removeFlag(Player player, String flagName) {
+    @Command("itemedit flags remove <flag>")
+    @Command("ie flags remove <flag>")
+    public void removeFlag(Player player, @Argument(value = "flag", suggestions = "itemflags") String flagName) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -501,7 +530,8 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Removed item flag §e" + flag.name() + "§a.");
     }
 
-    @Subcommand("flags clear")
+    @Command("itemedit flags clear")
+    @Command("ie flags clear")
     public void clearFlags(Player player) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
@@ -511,7 +541,8 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Cleared all item flags.");
     }
 
-    @Subcommand("hideall")
+    @Command("itemedit hideall")
+    @Command("ie hideall")
     public void hideAll(Player player) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
@@ -521,10 +552,14 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Applied all item flags.");
     }
 
-    @Subcommand("attribute add")
-    @Syntax("<attribute> <amount> <slot>")
-    @CommandCompletion("@attributes 1|2|5|10 hand|off_hand|armor|body|any")
-    public void addAttribute(Player player, Attribute attribute, double amount, String slotName) {
+    @Command("itemedit attribute add <attribute> <amount> <slot>")
+    @Command("ie attribute add <attribute> <amount> <slot>")
+    public void addAttribute(
+            Player player,
+            @Argument(value = "attribute", suggestions = "attributes") Attribute attribute,
+            @Argument("amount") double amount,
+            @Argument(value = "slot", suggestions = "equipmentslotgroups") String slotName
+    ) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -534,26 +569,28 @@ public class ItemEditCommand extends BaseCommand {
             player.sendMessage("§cUnknown slot group.");
             return;
         }
-        String keyName = "itemedit_" + attribute.name().toLowerCase(Locale.ROOT) + "_" + UUID.randomUUID().toString().replace("-", "");
+        String keyName = "itemedit_" + attribute.getKey().getKey().toLowerCase(Locale.ROOT) + "_" + UUID.randomUUID().toString().replace("-", "");
         AttributeModifier modifier = new AttributeModifier(NamespacedKey.minecraft(keyName), amount, AttributeModifier.Operation.ADD_NUMBER, slotGroup);
         meta.addAttributeModifier(attribute, modifier);
         applyMeta(player, meta, "Added the attribute modifier.");
     }
 
-    @Subcommand("attribute clear")
+    @Command("itemedit attribute clear")
+    @Command("ie attribute clear")
     public void clearAttributes(Player player) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
         }
-        for (Attribute attribute : Attribute.values()) {
+        for (Attribute attribute : org.bukkit.Registry.ATTRIBUTE) {
             meta.removeAttributeModifier(attribute);
         }
         applyMeta(player, meta, "Cleared attribute modifiers.");
     }
 
-    @Subcommand("lore add")
-    public void loreAdd(Player player, String text) {
+    @Command("itemedit lore add <text>")
+    @Command("ie lore add <text>")
+    public void loreAdd(Player player, @Argument("text") String text) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -564,8 +601,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Added a lore line.");
     }
 
-    @Subcommand("lore set")
-    public void loreSet(Player player, int line, String text) {
+    @Command("itemedit lore set <line> <text>")
+    @Command("ie lore set <line> <text>")
+    public void loreSet(Player player, @Argument("line") int line, @Argument("text") String text) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -581,8 +619,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Updated lore line §e" + line + "§a.");
     }
 
-    @Subcommand("lore insert")
-    public void loreInsert(Player player, int line, String text) {
+    @Command("itemedit lore insert <line> <text>")
+    @Command("ie lore insert <line> <text>")
+    public void loreInsert(Player player, @Argument("line") int line, @Argument("text") String text) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -594,8 +633,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Inserted lore line.");
     }
 
-    @Subcommand("lore remove")
-    public void loreRemove(Player player, int line) {
+    @Command("itemedit lore remove <line>")
+    @Command("ie lore remove <line>")
+    public void loreRemove(Player player, @Argument("line") int line) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -611,7 +651,8 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Removed lore line §e" + line + "§a.");
     }
 
-    @Subcommand("lore clear")
+    @Command("itemedit lore clear")
+    @Command("ie lore clear")
     public void loreClear(Player player) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
@@ -621,7 +662,8 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Cleared the lore.");
     }
 
-    @Subcommand("lore copy")
+    @Command("itemedit lore copy")
+    @Command("ie lore copy")
     public void loreCopy(Player player) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
@@ -631,7 +673,8 @@ public class ItemEditCommand extends BaseCommand {
         player.sendMessage("§aCopied the lore to your clipboard.");
     }
 
-    @Subcommand("lore paste")
+    @Command("itemedit lore paste")
+    @Command("ie lore paste")
     public void lorePaste(Player player) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
@@ -646,8 +689,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Pasted the copied lore.");
     }
 
-    @Subcommand("book author")
-    public void bookAuthor(Player player, String author) {
+    @Command("itemedit book author <text>")
+    @Command("ie book author <text>")
+    public void bookAuthor(Player player, @Argument("text") String author) {
         BookMeta meta = requireBookMeta(player);
         if (meta == null) {
             return;
@@ -656,8 +700,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Updated the book author.");
     }
 
-    @Subcommand("book title")
-    public void bookTitle(Player player, String title) {
+    @Command("itemedit book title <text>")
+    @Command("ie book title <text>")
+    public void bookTitle(Player player, @Argument("text") String title) {
         BookMeta meta = requireBookMeta(player);
         if (meta == null) {
             return;
@@ -666,8 +711,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Updated the book title.");
     }
 
-    @Subcommand("book addpage")
-    public void bookAddPage(Player player, String pageText) {
+    @Command("itemedit book addpage <text>")
+    @Command("ie book addpage <text>")
+    public void bookAddPage(Player player, @Argument("text") String pageText) {
         BookMeta meta = requireBookMeta(player);
         if (meta == null) {
             return;
@@ -676,8 +722,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Added a book page.");
     }
 
-    @Subcommand("book setpage")
-    public void bookSetPage(Player player, int page, String pageText) {
+    @Command("itemedit book setpage <page> <text>")
+    @Command("ie book setpage <page> <text>")
+    public void bookSetPage(Player player, @Argument("page") int page, @Argument("text") String pageText) {
         BookMeta meta = requireBookMeta(player);
         if (meta == null) {
             return;
@@ -690,8 +737,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Updated book page §e" + page + "§a.");
     }
 
-    @Subcommand("book removepage")
-    public void bookRemovePage(Player player, int page) {
+    @Command("itemedit book removepage <page>")
+    @Command("ie book removepage <page>")
+    public void bookRemovePage(Player player, @Argument("page") int page) {
         BookMeta meta = requireBookMeta(player);
         if (meta == null) {
             return;
@@ -706,7 +754,8 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Removed book page §e" + page + "§a.");
     }
 
-    @Subcommand("book clearpages")
+    @Command("itemedit book clearpages")
+    @Command("ie book clearpages")
     public void bookClearPages(Player player) {
         BookMeta meta = requireBookMeta(player);
         if (meta == null) {
@@ -716,8 +765,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Cleared all book pages.");
     }
 
-    @Subcommand("color")
-    public void color(Player player, String colorText) {
+    @Command("itemedit color <color>")
+    @Command("ie color <color>")
+    public void color(Player player, @Argument(value = "color", suggestions = "colors") String colorText) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -744,8 +794,13 @@ public class ItemEditCommand extends BaseCommand {
         player.sendMessage("§cThat item does not support colors.");
     }
 
-    @Subcommand("banner add")
-    public void bannerAdd(Player player, String dyeColorName, String patternName) {
+    @Command("itemedit banner add <color> <pattern>")
+    @Command("ie banner add <color> <pattern>")
+    public void bannerAdd(
+            Player player,
+            @Argument(value = "color", suggestions = "dyecolors") String dyeColorName,
+            @Argument(value = "pattern", suggestions = "bannerpatterns") String patternName
+    ) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -758,8 +813,12 @@ public class ItemEditCommand extends BaseCommand {
         PatternType patternType;
         try {
             dyeColor = DyeColor.valueOf(dyeColorName.toUpperCase(Locale.ROOT));
-            patternType = PatternType.valueOf(patternName.toUpperCase(Locale.ROOT));
         } catch (IllegalArgumentException exception) {
+            player.sendMessage("§cUnknown banner color or pattern.");
+            return;
+        }
+        patternType = org.bukkit.Registry.BANNER_PATTERN.get(NamespacedKey.minecraft(patternName.toLowerCase(Locale.ROOT)));
+        if (patternType == null) {
             player.sendMessage("§cUnknown banner color or pattern.");
             return;
         }
@@ -767,7 +826,8 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Added the banner pattern.");
     }
 
-    @Subcommand("banner clear")
+    @Command("itemedit banner clear")
+    @Command("ie banner clear")
     public void bannerClear(Player player) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
@@ -781,8 +841,13 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Cleared banner patterns.");
     }
 
-    @Subcommand("trim")
-    public void trim(Player player, String materialName, String patternName) {
+    @Command("itemedit trim <material> <pattern>")
+    @Command("ie trim <material> <pattern>")
+    public void trim(
+            Player player,
+            @Argument(value = "material", suggestions = "trimmaterials") String materialName,
+            @Argument(value = "pattern", suggestions = "trimpatterns") String patternName
+    ) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -794,7 +859,8 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Updated the armor trim.");
     }
 
-    @Subcommand("trim clear")
+    @Command("itemedit trim clear")
+    @Command("ie trim clear")
     public void trimClear(Player player) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
@@ -807,8 +873,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Cleared the armor trim.");
     }
 
-    @Subcommand("potion color")
-    public void potionColor(Player player, String colorText) {
+    @Command("itemedit potion color <color>")
+    @Command("ie potion color <color>")
+    public void potionColor(Player player, @Argument(value = "color", suggestions = "colors") String colorText) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -825,10 +892,17 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Updated the potion color.");
     }
 
-    @Subcommand("potion add")
-    @CommandCompletion("@potioneffecttypes 200 1 true|false true|false true|false")
-    public void potionAdd(Player player, PotionEffectType type, int durationTicks, int amplifier,
-                          @Optional Boolean ambient, @Optional Boolean particles, @Optional Boolean icon) {
+    @Command("itemedit potion add <type> <duration> <amplifier> [ambient] [particles] [icon]")
+    @Command("ie potion add <type> <duration> <amplifier> [ambient] [particles] [icon]")
+    public void potionAdd(
+            Player player,
+            @Argument(value = "type", suggestions = "potioneffecttypes") PotionEffectType type,
+            @Argument("duration") int durationTicks,
+            @Argument("amplifier") int amplifier,
+            @Argument("ambient") Boolean ambient,
+            @Argument("particles") Boolean particles,
+            @Argument("icon") Boolean icon
+    ) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -845,9 +919,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Added the potion effect.");
     }
 
-    @Subcommand("potion remove")
-    @CommandCompletion("@potioneffecttypes")
-    public void potionRemove(Player player, PotionEffectType type) {
+    @Command("itemedit potion remove <type>")
+    @Command("ie potion remove <type>")
+    public void potionRemove(Player player, @Argument(value = "type", suggestions = "potioneffecttypes") PotionEffectType type) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -860,7 +934,8 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Removed the potion effect.");
     }
 
-    @Subcommand("potion clear")
+    @Command("itemedit potion clear")
+    @Command("ie potion clear")
     public void potionClear(Player player) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
@@ -877,8 +952,9 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Cleared potion edits.");
     }
 
-    @Subcommand("firework power")
-    public void fireworkPower(Player player, int power) {
+    @Command("itemedit firework power <power>")
+    @Command("ie firework power <power>")
+    public void fireworkPower(Player player, @Argument("power") int power) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {
             return;
@@ -895,7 +971,8 @@ public class ItemEditCommand extends BaseCommand {
         applyMeta(player, meta, "Updated the firework power.");
     }
 
-    @Subcommand("firework clear")
+    @Command("itemedit firework clear")
+    @Command("ie firework clear")
     public void fireworkClear(Player player) {
         ItemMeta meta = requireMeta(player);
         if (meta == null) {

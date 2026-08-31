@@ -1,19 +1,24 @@
 package com.boes.sage.features.notification;
 
 import com.boes.sage.Sage;
-import com.boes.sage.Utils.JsonStorageManager;
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
+import com.boes.sage.Utils.DatabaseManager;
 import net.kyori.adventure.bossbar.BossBar;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.minimessage.MiniMessage;
+import net.kyori.adventure.text.minimessage.tag.resolver.Placeholder;
+import net.kyori.adventure.text.minimessage.tag.resolver.TagResolver;
+import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.entity.HumanEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 
-import java.io.File;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.Duration;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -33,7 +38,7 @@ public class NotificationService {
     private static final Component ANNOUNCEMENT_BARS = Component.text("=========");
 
     private final Sage plugin;
-    private final JsonStorageManager storageManager;
+    private final DatabaseManager databaseManager;
     private final MiniMessage miniMessage;
     private final HttpClient httpClient;
     private BossBar globalBossBar;
@@ -46,7 +51,7 @@ public class NotificationService {
 
     public NotificationService(Sage plugin) {
         this.plugin = plugin;
-        this.storageManager = new JsonStorageManager(new File(plugin.getDataFolder(), "notifications.json"));
+        this.databaseManager = plugin.getDatabaseManager();
         this.miniMessage = MiniMessage.miniMessage();
         this.httpClient = HttpClient.newHttpClient();
         this.bossBarMessages = List.of();
@@ -56,60 +61,95 @@ public class NotificationService {
     }
 
     public void addNotification(UUID uuid, String title, String message, String reason, String duration) {
-        JsonObject json = storageManager.load();
-        String uuidStr = uuid.toString();
-
-        JsonArray notificationsArray = json.has(uuidStr) ? json.getAsJsonArray(uuidStr) : new JsonArray();
-
-        JsonObject notificationObj = new JsonObject();
-        notificationObj.addProperty("title", title);
-        notificationObj.addProperty("message", message);
-        notificationObj.addProperty("reason", reason);
-        notificationObj.addProperty("duration", duration);
-
-        notificationsArray.add(notificationObj);
-        json.add(uuidStr, notificationsArray);
-
-        storageManager.save(json);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try (Connection connection = databaseManager.getConnection();
+                 PreparedStatement statement = connection.prepareStatement(
+                         "INSERT INTO notifications (uuid, title, message, reason, duration) VALUES (?, ?, ?, ?, ?)")) {
+                statement.setString(1, uuid.toString());
+                statement.setString(2, title);
+                statement.setString(3, message);
+                statement.setString(4, reason);
+                statement.setString(5, duration);
+                statement.executeUpdate();
+            } catch (SQLException e) {
+                plugin.getLogger().severe("Failed to add notification for " + uuid + ": " + e.getMessage());
+            }
+        });
     }
 
     public void deliverNotifications(Player player) {
         UUID uuid = player.getUniqueId();
-        JsonObject json = storageManager.load();
-        String uuidStr = uuid.toString();
 
-        if (!json.has(uuidStr)) {
-            return;
-        }
-
-        JsonArray notificationsArray = json.getAsJsonArray(uuidStr);
-
-        for (int i = 0; i < notificationsArray.size(); i++) {
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            List<PendingNotification> pending;
             try {
-                JsonObject notificationObj = notificationsArray.get(i).getAsJsonObject();
-                String title = notificationObj.get("title").getAsString();
-                String message = notificationObj.get("message").getAsString();
-                String reason = notificationObj.get("reason").getAsString();
-                String duration = notificationObj.get("duration").getAsString();
+                pending = fetchAndClearNotifications(uuid);
+            } catch (SQLException e) {
+                plugin.getLogger().severe("Failed to deliver notifications for " + uuid + ": " + e.getMessage());
+                return;
+            }
 
-                message = message.replace("{reason}", reason);
-                message = message.replace("{duration}", duration);
-                title = title.replace("{reason}", reason);
-                title = title.replace("{duration}", duration);
+            if (pending.isEmpty()) {
+                return;
+            }
 
-                player.sendMessage("");
-                player.sendMessage(message);
-                player.sendMessage("");
-
-                if (!title.isEmpty()) {
-                    player.sendTitle(title, "§7" + reason, 10, 70, 20);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!player.isOnline()) {
+                    return;
                 }
-            } catch (Exception ignored) {
+
+                for (PendingNotification notification : pending) {
+                    try {
+                        TagResolver placeholders = TagResolver.resolver(
+                            Placeholder.unparsed("reason", notification.reason()),
+                            Placeholder.unparsed("duration", notification.duration())
+                        );
+
+                        player.sendMessage(Component.empty());
+                        player.sendMessage(deserialize(notification.message(), placeholders));
+                        player.sendMessage(Component.empty());
+
+                        if (!notification.title().isEmpty()) {
+                            Component titleComponent = deserialize(notification.title(), placeholders);
+                            Component subtitleComponent = deserialize("<gray><reason></gray>", placeholders);
+                            player.showTitle(Title.title(titleComponent, subtitleComponent, Title.Times.times(Duration.ofMillis(500), Duration.ofMillis(3500), Duration.ofMillis(1000))));
+                        }
+                    } catch (Exception ignoredException) {
+                    }
+                }
+            });
+        });
+    }
+
+    private List<PendingNotification> fetchAndClearNotifications(UUID uuid) throws SQLException {
+        List<PendingNotification> notifications = new ArrayList<>();
+
+        try (Connection connection = databaseManager.getConnection()) {
+            try (PreparedStatement statement = connection.prepareStatement(
+                    "SELECT title, message, reason, duration FROM notifications WHERE uuid = ?")) {
+                statement.setString(1, uuid.toString());
+                try (ResultSet resultSet = statement.executeQuery()) {
+                    while (resultSet.next()) {
+                        notifications.add(new PendingNotification(
+                            resultSet.getString("title"),
+                            resultSet.getString("message"),
+                            resultSet.getString("reason"),
+                            resultSet.getString("duration")
+                        ));
+                    }
+                }
+            }
+
+            try (PreparedStatement statement = connection.prepareStatement("DELETE FROM notifications WHERE uuid = ?")) {
+                statement.setString(1, uuid.toString());
+                statement.executeUpdate();
             }
         }
 
-        json.remove(uuidStr);
-        storageManager.save(json);
+        return notifications;
+    }
+
+    private record PendingNotification(String title, String message, String reason, String duration) {
     }
 
     public void handlePlayerJoin(Player player) {
@@ -253,9 +293,13 @@ public class NotificationService {
     }
 
     private Component deserialize(String text) {
+        return deserialize(text, TagResolver.empty());
+    }
+
+    private Component deserialize(String text, TagResolver placeholders) {
         String value = text == null ? "" : text;
         try {
-            return miniMessage.deserialize(value);
+            return miniMessage.deserialize(value, placeholders);
         } catch (Exception exception) {
             return Component.text(value);
         }

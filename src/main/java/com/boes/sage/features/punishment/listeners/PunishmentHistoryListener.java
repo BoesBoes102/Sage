@@ -24,7 +24,7 @@ public class PunishmentHistoryListener implements Listener {
     public void onInventoryClick(InventoryClickEvent event) {
         String title = event.getView().getTitle();
 
-        if (title.startsWith("Â§8Punishment History: ")) {
+        if (title.startsWith("§8Punishment History: ")) {
             event.setCancelled(true);
             if (!(event.getWhoClicked() instanceof Player player)) {
                 return;
@@ -50,14 +50,21 @@ public class PunishmentHistoryListener implements Listener {
             else if (displayName.contains("KICK")) punishmentType = "kick";
 
             if (punishmentType != null) {
-                String targetName = title.replace("Â§8Punishment History: Â§e", "");
-                OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
-                new HistoryDetailsGUI(plugin, player, target, punishmentType).open();
+                String targetName = title.replace("§8Punishment History: §e", "");
+                String finalPunishmentType = punishmentType;
+                Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                    OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
+                    Bukkit.getScheduler().runTask(plugin, () -> {
+                        if (player.isOnline()) {
+                            new HistoryDetailsGUI(plugin, player, target, finalPunishmentType).open();
+                        }
+                    });
+                });
             }
             return;
         }
 
-        if (!title.contains("Â§8") || !title.contains("S: Â§e")) {
+        if (!title.contains("§8") || !title.contains("S: §e")) {
             return;
         }
 
@@ -76,8 +83,14 @@ public class PunishmentHistoryListener implements Listener {
             return;
         }
 
-        String targetName = title.split("Â§e")[1];
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
-        new HistoryGUI(plugin, player, target).open();
+        String targetName = title.split("§e")[1];
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (player.isOnline()) {
+                    new HistoryGUI(plugin, player, target).open();
+                }
+            });
+        });
     }
 }

@@ -1,10 +1,28 @@
 package com.boes.sage;
 
-import co.aikar.commands.PaperCommandManager;
+import com.boes.sage.command.SageCommandManager;
+import com.boes.sage.Utils.DatabaseManager;
+import com.boes.sage.Utils.OfflinePlayerDataManager;
+import com.boes.sage.Utils.PlayerRuntimeDataManager;
 import com.boes.sage.commands.QOLCommands.*;
+import com.boes.sage.commands.QOLCommands.DisposeCommand.DisposeCommand;
+import com.boes.sage.commands.QOLCommands.WorkbenchCommands.*;
 import com.boes.sage.commands.TeleportCommands.*;
+import com.boes.sage.features.back.BackFeature;
+import com.boes.sage.features.back.BackService;
+import com.boes.sage.features.back.commands.BackCommand;
+import com.boes.sage.features.god.GodFeature;
+import com.boes.sage.features.god.GodService;
+import com.boes.sage.features.god.commands.GodCommand;
+import com.boes.sage.features.messaging.MessagingFeature;
+import com.boes.sage.features.messaging.MessagingService;
+import com.boes.sage.features.messaging.commands.MessageCommand;
+import com.boes.sage.features.messaging.commands.ReplyCommand;
 import com.boes.sage.features.punishment.data.PunishmentData;
 import com.boes.sage.features.alts.AltAccountService;
+import com.boes.sage.features.alts.commands.AltsCommand;
+import com.boes.sage.features.alts.commands.AltsAllCommand;
+import com.boes.sage.features.alts.listeners.AltsListener;
 import com.boes.sage.features.FeatureRegistry;
 import com.boes.sage.features.chatlog.ChatLogFeature;
 import com.boes.sage.features.freeze.FreezeFeature;
@@ -16,6 +34,11 @@ import com.boes.sage.features.itemedit.commands.ItemEditCommand;
 import com.boes.sage.features.itemdb.ItemDatabaseFeature;
 import com.boes.sage.features.kit.KitFeature;
 import com.boes.sage.features.notification.NotificationFeature;
+import com.boes.sage.features.openinv.OpenInvFeature;
+import com.boes.sage.features.openinv.OpenInventoryService;
+import com.boes.sage.features.openinv.OpenEnderChestService;
+import com.boes.sage.features.openinv.commands.OpenInventoryCommand;
+import com.boes.sage.features.openinv.commands.OpenEnderChestCommand;
 import com.boes.sage.features.punishment.PunishmentFeature;
 import com.boes.sage.features.refund.RefundFeature;
 import com.boes.sage.features.spy.SpyFeature;
@@ -56,40 +79,46 @@ import com.boes.sage.features.punishment.commands.UnwarnCommand;
 import com.boes.sage.features.punishment.commands.WarnCommand;
 import com.boes.sage.features.refund.commands.RefundCommand;
 import com.boes.sage.features.spy.commands.CommandSpyCommand;
-import com.boes.sage.features.spy.commands.ConsoleSpyCommand;
+import com.boes.sage.features.spy.commands.MessageSpyCommand;
 import com.boes.sage.features.staffmode.commands.StaffModeCommand;
 import com.boes.sage.features.usage.commands.UsageCommand;
 import com.boes.sage.features.vanish.commands.VanishCommand;
 import com.boes.sage.features.warp.commands.WarpCommand;
-import com.boes.sage.listeners.InventoryClickListener;
+import com.boes.sage.commands.QOLCommands.DisposeCommand.DisposeListener;
 import com.boes.sage.listeners.PlayerJoinListener;
 import com.boes.sage.listeners.PlayerJoinSyncListener;
-import com.boes.sage.listeners.PlayerQuitListener;
 import com.boes.sage.commands.StaffCommands.KickAllCommand;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.FileConfiguration;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.enchantments.Enchantment;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.potion.PotionEffectType;
+import org.incendo.cloud.parser.ArgumentParseResult;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 public class Sage extends JavaPlugin {
 
     private static Sage instance;
     private final FeatureRegistry featureRegistry = new FeatureRegistry();
-    private PaperCommandManager commandManager;
+    private DatabaseManager databaseManager;
+    private PlayerRuntimeDataManager playerRuntimeDataManager;
+    private SageCommandManager commandManager;
     private PunishmentFeature punishmentFeature;
     private SpyFeature spyFeature;
     private StaffModeFeature staffModeFeature;
@@ -103,10 +132,13 @@ public class Sage extends JavaPlugin {
     private ItemDatabaseFeature itemDatabaseFeature;
     private UsageFeature usageFeature;
     private RefundFeature refundFeature;
+    private GodFeature godFeature;
+    private MessagingFeature messagingFeature;
+    private BackFeature backFeature;
+    private OpenInvFeature openInvFeature;
     private AltAccountService altAccountService;
+    private TempWorkbenchManager tempWorkbenchManager;
     private Map<String, PunishmentData> punishmentReasons;
-    private OpenInventoryCommand openInventoryCommand;
-    private OpenEnderChestCommand openEnderChestCommand;
     private FileConfiguration punishmentsConfig;
     private FileConfiguration rulesConfig;
     private FileConfiguration messagesConfig;
@@ -118,64 +150,202 @@ public class Sage extends JavaPlugin {
         saveDefaultConfig();
         initializeSplitConfigs();
         loadAllAvailableWorlds();
+        databaseManager = new DatabaseManager(this);
+        playerRuntimeDataManager = new PlayerRuntimeDataManager(this);
+        OfflinePlayerDataManager.init(this);
         altAccountService = new AltAccountService(this);
 
         try {
-            commandManager = new PaperCommandManager(this);
-            commandManager.getCommandContexts().registerContext(PotionEffectType.class, c -> {
-                String input = c.popFirstArg();
-                PotionEffectType type = PotionEffectType.getByName(input.toUpperCase());
+            commandManager = new SageCommandManager(this);
+
+            commandManager.registerParser(PotionEffectType.class, (ctx, input) -> {
+                String token = input.readString();
+                PotionEffectType type = PotionEffectType.getByName(token.toUpperCase());
                 if (type == null) {
-                    throw new IllegalArgumentException("Invalid potion effect type: " + input);
+                    return ArgumentParseResult.failure(new IllegalArgumentException("Invalid potion effect type: " + token));
                 }
-                return type;
+                return ArgumentParseResult.success(type);
             });
-            commandManager.getCommandContexts().registerContext(Enchantment.class, c -> {
-                String input = c.popFirstArg();
-                Enchantment enchantment = Enchantment.getByName(input.toUpperCase());
+
+            commandManager.registerParser(Enchantment.class, (ctx, input) -> {
+                String token = input.readString();
+                Enchantment enchantment = Enchantment.getByName(token.toUpperCase());
                 if (enchantment == null) {
-                    throw new IllegalArgumentException("Invalid enchantment: " + input);
+                    return ArgumentParseResult.failure(new IllegalArgumentException("Invalid enchantment: " + token));
                 }
-                return enchantment;
+                return ArgumentParseResult.success(enchantment);
             });
-            commandManager.getCommandContexts().registerContext(Attribute.class, c -> {
-                String input = c.popFirstArg();
-                Attribute attribute = Arrays.stream(Attribute.values())
-                    .filter(value -> value.name().equalsIgnoreCase(input))
+
+            commandManager.registerParser(Attribute.class, (ctx, input) -> {
+                String token = input.readString();
+                Attribute attribute = org.bukkit.Registry.ATTRIBUTE.stream()
+                    .filter(value -> value.getKey().getKey().equalsIgnoreCase(token))
                     .findFirst()
                     .orElse(null);
                 if (attribute == null) {
-                    throw new IllegalArgumentException("Invalid attribute: " + input);
+                    return ArgumentParseResult.failure(new IllegalArgumentException("Invalid attribute: " + token));
                 }
-                return attribute;
+                return ArgumentParseResult.success(attribute);
             });
 
-            commandManager.getCommandCompletions().registerCompletion("potioneffecttypes", c ->
+            commandManager.registerSuggestions("potioneffecttypes", () ->
                 Arrays.stream(PotionEffectType.values())
-                    .filter(type -> type != null && type.getName() != null)
-                    .map(type -> type.getName().toLowerCase())
+                    .filter(type -> type != null && type.getKey() != null)
+                    .map(type -> type.getKey().getKey())
                     .collect(Collectors.toList())
             );
 
-            commandManager.getCommandCompletions().registerCompletion("materials", c ->
+            commandManager.registerSuggestions("potiontypes", () ->
+                List.of("splash", "lingering", "normal")
+            );
+
+            commandManager.registerSuggestions("amplifierPlaceholder", () -> List.of("<amplifier>"));
+
+            commandManager.registerSuggestions("durationPlaceholder", () ->
+                List.of("infinite", "1", "10", "30", "60", "120")
+            );
+
+            commandManager.registerSuggestions("materials", () ->
                 Arrays.stream(Material.values())
                     .map(m -> m.name().toLowerCase())
                     .collect(Collectors.toList())
             );
 
-            commandManager.getCommandCompletions().registerCompletion("enchantments", c ->
+            commandManager.registerSuggestions("enchantments", () ->
                 Arrays.stream(Enchantment.values())
                     .map(e -> e.getKey().getKey())
                     .collect(Collectors.toList())
             );
 
-            commandManager.getCommandCompletions().registerCompletion("attributes", c ->
-                Arrays.stream(Attribute.values())
-                    .map(attribute -> attribute.name().toLowerCase())
+            commandManager.registerSuggestions("attributes", () ->
+                org.bukkit.Registry.ATTRIBUTE.stream()
+                    .map(attribute -> attribute.getKey().getKey())
+                    .collect(Collectors.toList())
+            );
+
+            commandManager.registerSuggestions("itemflags", () ->
+                Arrays.stream(org.bukkit.inventory.ItemFlag.values())
+                    .map(flag -> flag.name().toLowerCase())
+                    .collect(Collectors.toList())
+            );
+
+            commandManager.registerSuggestions("itemRarities", () ->
+                List.of("common", "uncommon", "rare", "epic")
+            );
+
+            commandManager.registerSuggestions("colors", () ->
+                List.of("black", "blue", "aqua", "fuchsia", "gray", "green", "lime", "maroon", "navy",
+                    "olive", "orange", "purple", "red", "silver", "teal", "white", "yellow")
+            );
+
+            commandManager.registerSuggestions("dyecolors", () ->
+                Arrays.stream(org.bukkit.DyeColor.values())
+                    .map(color -> color.name().toLowerCase())
+                    .collect(Collectors.toList())
+            );
+
+            commandManager.registerSuggestions("bannerpatterns", () ->
+                org.bukkit.Registry.BANNER_PATTERN.stream()
+                    .map(pattern -> org.bukkit.Registry.BANNER_PATTERN.getKeyOrThrow(pattern).getKey())
+                    .collect(Collectors.toList())
+            );
+
+            commandManager.registerSuggestions("trimmaterials", () ->
+                org.bukkit.Registry.TRIM_MATERIAL.stream()
+                    .map(material -> org.bukkit.Registry.TRIM_MATERIAL.getKeyOrThrow(material).getKey())
+                    .collect(Collectors.toList())
+            );
+
+            commandManager.registerSuggestions("trimpatterns", () ->
+                org.bukkit.Registry.TRIM_PATTERN.stream()
+                    .map(pattern -> org.bukkit.Registry.TRIM_PATTERN.getKeyOrThrow(pattern).getKey())
+                    .collect(Collectors.toList())
+            );
+
+            commandManager.registerSuggestions("equipmentslotgroups", () -> {
+                List<String> groups = new ArrayList<>();
+                for (java.lang.reflect.Field field : org.bukkit.inventory.EquipmentSlotGroup.class.getFields()) {
+                    if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) {
+                        groups.add(field.getName().toLowerCase());
+                    }
+                }
+                return groups;
+            });
+
+            commandManager.registerSuggestions("players", () ->
+                Bukkit.getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .sorted()
+                    .collect(Collectors.toList())
+            );
+
+            commandManager.registerSuggestions("ptimeOptions", () ->
+                List.of("day", "night", "midnight", "dawn", "sunrise", "morning", "noon", "afternoon", "sunset", "dusk",
+                    "0", "1000", "6000", "9000", "12000", "18000", "reset")
+            );
+
+            commandManager.registerSuggestions("pweatherOptions", () ->
+                List.of("clear", "rain", "thunder", "reset")
+            );
+
+            commandManager.registerSuggestions("speedOptions", () ->
+                List.of("1", "2", "3", "4", "5", "6", "7", "8", "9", "10", "reset")
+            );
+
+            commandManager.registerSuggestions("speedModes", () ->
+                List.of("both", "fly", "walk")
+            );
+
+            commandManager.registerSuggestions("repairModes", () ->
+                List.of("hand", "all")
+            );
+
+            commandManager.registerSuggestions("sudoModes", () ->
+                List.of("true", "false", "chat")
+            );
+
+            commandManager.registerSuggestions("sudoTargets", () -> {
+                List<String> targets = new ArrayList<>();
+                targets.add("@a");
+                targets.addAll(Bukkit.getOnlinePlayers().stream()
+                    .map(Player::getName)
+                    .sorted()
+                    .collect(Collectors.toList()));
+                return targets;
+            });
+
+            commandManager.registerSuggestions("chatLogTypes", () ->
+                List.of("message", "command")
+            );
+
+            commandManager.registerSuggestions("chatLogPages", (ctx, input) ->
+                java.util.concurrent.CompletableFuture.supplyAsync(() -> {
+                    List<String> pages = new ArrayList<>();
+
+                    Optional<String> type = ctx.optional("type");
+                    Optional<String> playerName = ctx.optional("player");
+
+                    if (type.isPresent() && playerName.isPresent()) {
+                        OfflinePlayer target = Bukkit.getOfflinePlayer(playerName.get());
+                        if (target.hasPlayedBefore()) {
+                            int totalPages = getChatLogService().getTotalPages(target.getUniqueId(), type.get());
+                            for (int i = 1; i <= totalPages; i++) {
+                                pages.add(String.valueOf(i));
+                            }
+                        }
+                    }
+
+                    return pages.stream().map(org.incendo.cloud.suggestion.Suggestion::suggestion).collect(Collectors.toList());
+                })
+            );
+
+            commandManager.registerSuggestions("bans", () ->
+                Arrays.stream(Bukkit.getBanList(org.bukkit.BanList.Type.NAME).getBanEntries().toArray(new org.bukkit.BanEntry[0]))
+                    .map(entry -> entry.getTarget().toString())
                     .collect(Collectors.toList())
             );
         } catch (Exception e) {
-            getLogger().severe("Failed to initialize ACF command manager: " + e.getMessage());
+            getLogger().severe("Failed to initialize command manager: " + e.getMessage());
             e.printStackTrace();
         }
 
@@ -192,6 +362,12 @@ public class Sage extends JavaPlugin {
         itemDatabaseFeature = new ItemDatabaseFeature();
         usageFeature = new UsageFeature();
         refundFeature = new RefundFeature();
+        godFeature = new GodFeature();
+        messagingFeature = new MessagingFeature();
+        backFeature = new BackFeature();
+        openInvFeature = new OpenInvFeature();
+        tempWorkbenchManager = new TempWorkbenchManager(this);
+        Bukkit.getPluginManager().registerEvents(tempWorkbenchManager, this);
 
         featureRegistry.register("punishment", punishmentFeature);
         featureRegistry.register("spy", spyFeature);
@@ -206,42 +382,46 @@ public class Sage extends JavaPlugin {
         featureRegistry.register("itemDatabase", itemDatabaseFeature);
         featureRegistry.register("usage", usageFeature);
         featureRegistry.register("refund", refundFeature);
+        featureRegistry.register("god", godFeature);
+        featureRegistry.register("messaging", messagingFeature);
+        featureRegistry.register("back", backFeature);
+        featureRegistry.register("openInv", openInvFeature);
         featureRegistry.all().forEach((key, feature) -> feature.register(this));
         Bukkit.getPluginManager().registerEvents(new PlayerJoinListener(this), this);
-        Bukkit.getPluginManager().registerEvents(new PlayerQuitListener(this), this);
+        Bukkit.getPluginManager().registerEvents(new AltsListener(this), this);
         Bukkit.getPluginManager().registerEvents(new PlayerJoinSyncListener(this), this);
-        Bukkit.getPluginManager().registerEvents(new InventoryClickListener(), this);
+        Bukkit.getPluginManager().registerEvents(new DisposeListener(), this);
         loadPunishmentReasons();
 
         try {
-            commandManager.getCommandCompletions().registerCompletion("itemdb", c ->
+            commandManager.registerSuggestions("itemdb", () ->
                 getItemDatabaseService().getItemNames().stream().sorted().collect(Collectors.toList())
             );
 
-            commandManager.getCommandCompletions().registerCompletion("punishReasons", c ->
-                new java.util.ArrayList<>(punishmentReasons.keySet())
+            commandManager.registerSuggestions("punishReasons", () ->
+                new ArrayList<>(punishmentReasons.keySet())
             );
 
-            commandManager.getCommandCompletions().registerCompletion("kits", c ->
+            commandManager.registerSuggestions("kits", () ->
                 getKitService().getKitNames().stream().sorted().collect(Collectors.toList())
             );
 
-            commandManager.getCommandCompletions().registerCompletion("kitGiveTargets", c -> {
-                List<String> targets = new java.util.ArrayList<>();
+            commandManager.registerSuggestions("kitGiveTargets", () -> {
+                List<String> targets = new ArrayList<>();
                 targets.add("all");
                 targets.addAll(Bukkit.getOnlinePlayers().stream()
-                    .map(player -> player.getName())
+                    .map(Player::getName)
                     .sorted()
                     .collect(Collectors.toList()));
                 return targets;
             });
 
-            commandManager.getCommandCompletions().registerCompletion("warp", c ->
-                getWarpService().getWarpNames(false));
+            commandManager.registerSuggestions("warp", () -> getWarpService().getWarpNames(false));
+            commandManager.registerSuggestions("warpAdmin", () -> getWarpService().getWarpNames(true));
 
-            commandManager.getCommandCompletions().registerCompletion("worldNames", c -> {
+            commandManager.registerSuggestions("worldNames", () -> {
                 File[] folders = getServer().getWorldContainer().listFiles();
-                List<String> worldNames = new java.util.ArrayList<>();
+                List<String> worldNames = new ArrayList<>();
 
                 if (folders != null) {
                     for (File folder : folders) {
@@ -260,24 +440,52 @@ public class Sage extends JavaPlugin {
                 return worldNames;
             });
 
-            commandManager.getCommandCompletions().registerCompletion("entitytypes", c ->
+            commandManager.registerSuggestions("entitytypes", () ->
                 Arrays.stream(org.bukkit.entity.EntityType.values())
                     .filter(et -> et.isSpawnable() && et.isAlive())
                     .map(et -> et.name().toLowerCase())
                     .collect(Collectors.toList())
             );
 
-            commandManager.getCommandCompletions().registerCompletion("durations", c -> {
-                String input = c.getInput();
-                List<String> durations = new java.util.ArrayList<>();
-                if (input.matches("\\d+.*")) {
-                    durations.add("d");
-                    durations.add("h");
-                    durations.add("m");
-                    durations.add("s");
+            commandManager.registerSuggestions("spawnAmounts", () ->
+                List.of("1", "10", "25", "50", "100", "250", "500", "1000")
+            );
+
+            commandManager.registerSuggestions("durations", (ctx, input) -> {
+                String token = input.lastRemainingToken();
+                List<String> durations = new ArrayList<>();
+
+                if (token.isEmpty()) {
+                    durations.add("1s");
+                    durations.add("1m");
+                    durations.add("1h");
+                    durations.add("1d");
+                    durations.add("permanent");
+                } else if (token.matches("\\d+")) {
+                    durations.add(token + "s");
+                    durations.add(token + "m");
+                    durations.add(token + "h");
+                    durations.add(token + "d");
                 }
-                return durations;
+
+                return java.util.concurrent.CompletableFuture.completedFuture(
+                    durations.stream().map(org.incendo.cloud.suggestion.Suggestion::suggestion).collect(Collectors.toList())
+                );
             });
+
+            commandManager.registerSuggestions("none", () -> new ArrayList<>());
+
+            commandManager.registerSuggestions("levelPlaceholder", () -> List.of("<level>"));
+
+            commandManager.registerSuggestions("amountPlaceholder", () -> List.of("<amount>"));
+
+            commandManager.registerSuggestions("reasonPlaceholder", () -> List.of("<reason>"));
+
+            commandManager.registerNamedParser("positiveAmount",
+                    org.incendo.cloud.parser.standard.IntegerParser.integerParser(1));
+
+            commandManager.registerNamedParser("nonNegativeAmount",
+                    org.incendo.cloud.parser.standard.IntegerParser.integerParser(0));
         } catch (Exception e) {
             getLogger().severe("Failed to register command completions: " + e.getMessage());
             e.printStackTrace();
@@ -302,8 +510,10 @@ public class Sage extends JavaPlugin {
             commandManager.registerCommand(new StaffBroadcastCommand(this));
             commandManager.registerCommand(new MuteChatCommand(this));
             commandManager.registerCommand(new ChatLogsCommand(this));
-            commandManager.registerCommand(new KitCommand(this));
-            commandManager.registerCommand(new GiveKitCommand(this));
+            if (isCommandEnabled("kit")) {
+                commandManager.registerCommand(new KitCommand(this));
+                commandManager.registerCommand(new GiveKitCommand(this));
+            }
             commandManager.registerCommand(new ItemDBCommand(this));
             commandManager.registerCommand(new ItemEditCommand(this));
             commandManager.registerCommand(new StaffChatCommand(this));
@@ -325,7 +535,7 @@ public class Sage extends JavaPlugin {
                 commandManager.registerCommand(new RulesCommand(this));
             }
             commandManager.registerCommand(new HatCommand(this));
-            commandManager.registerCommand(new SeenCommand());
+            commandManager.registerCommand(new SeenCommand(this));
             commandManager.registerCommand(new SudoCommand(this));
             commandManager.registerCommand(new SpeedCommand(this));
             commandManager.registerCommand(new XpCommand(this));
@@ -343,19 +553,33 @@ public class Sage extends JavaPlugin {
             }
             commandManager.registerCommand(new PWeatherCommand(this));
             commandManager.registerCommand(new SpawnMobCommand(this));
-            commandManager.registerCommand(new FirstJoinCommand());
+            commandManager.registerCommand(new FirstJoinCommand(this));
             commandManager.registerCommand(new CommandSpyCommand(this));
-            commandManager.registerCommand(new ConsoleSpyCommand(this));
-            openInventoryCommand = new OpenInventoryCommand(this);
-            commandManager.registerCommand(openInventoryCommand);
-            openEnderChestCommand = new OpenEnderChestCommand(this);
-            commandManager.registerCommand(openEnderChestCommand);
+            commandManager.registerCommand(new OpenInventoryCommand(this));
+            commandManager.registerCommand(new OpenEnderChestCommand(this));
+            commandManager.registerCommand(new EnderChestCommand());
             commandManager.registerCommand(new EnchantmentBookCommand(this));
             commandManager.registerCommand(new GamemodeCreativeCommand(this));
             commandManager.registerCommand(new GamemodeSurvivalCommand(this));
             commandManager.registerCommand(new GamemodeSpectatorCommand(this));
             commandManager.registerCommand(new GamemodeAdventureCommand(this));
             commandManager.registerCommand(new UsageCommand(this));
+            commandManager.registerCommand(new GodCommand(this));
+            commandManager.registerCommand(new MessageCommand(this));
+            commandManager.registerCommand(new ReplyCommand(this));
+            commandManager.registerCommand(new MessageSpyCommand(this));
+
+            commandManager.registerCommand(new CraftingTableCommand());
+            commandManager.registerCommand(new StonecutterCommand());
+            commandManager.registerCommand(new LoomCommand());
+            commandManager.registerCommand(new CartographyTableCommand());
+            commandManager.registerCommand(new SmithingTableCommand());
+            commandManager.registerCommand(new AnvilCommand());
+            commandManager.registerCommand(new GrindstoneCommand());
+            commandManager.registerCommand(new FurnaceCommand(this));
+            commandManager.registerCommand(new BlastFurnaceCommand(this));
+            commandManager.registerCommand(new SmokerCommand(this));
+            commandManager.registerCommand(new BrewingStandCommand(this));
         } catch (Exception e) {
             getLogger().severe("Failed to register commands with ACF: " + e.getMessage());
             e.printStackTrace();
@@ -368,6 +592,7 @@ public class Sage extends JavaPlugin {
             commandManager.registerCommand(new WorldCommand(this));
             commandManager.registerCommand(new TpPosCommand(this));
             commandManager.registerCommand(new WarpCommand(this));
+            commandManager.registerCommand(new BackCommand(this));
         } catch (Exception e) {
             getLogger().severe("Failed to register teleport commands with ACF: " + e.getMessage());
             e.printStackTrace();
@@ -400,15 +625,20 @@ public class Sage extends JavaPlugin {
             usageFeature.shutdown(this);
         }
 
-        if (openInventoryCommand != null) {
-            openInventoryCommand.cleanup();
+        if (openInvFeature != null) {
+            openInvFeature.shutdown(this);
         }
 
-        if (openEnderChestCommand != null) {
-            openEnderChestCommand.cleanup();
+        if (tempWorkbenchManager != null) {
+            tempWorkbenchManager.cleanup();
         }
 
         Bukkit.getScheduler().cancelTasks(this);
+
+        if (databaseManager != null) {
+            databaseManager.close();
+        }
+
         getLogger().info("Sage has been disabled!");
     }
 
@@ -447,8 +677,16 @@ public class Sage extends JavaPlugin {
         return instance;
     }
 
-    public PaperCommandManager getCommandManager() {
+    public SageCommandManager getCommandManager() {
         return commandManager;
+    }
+
+    public DatabaseManager getDatabaseManager() {
+        return databaseManager;
+    }
+
+    public PlayerRuntimeDataManager getPlayerRuntimeDataManager() {
+        return playerRuntimeDataManager;
     }
 
     public PunishmentService getPunishmentService() {
@@ -503,12 +741,28 @@ public class Sage extends JavaPlugin {
         return refundFeature == null ? null : refundFeature.service();
     }
 
-    public OpenInventoryCommand getOpenInventoryCommand() {
-        return openInventoryCommand;
+    public GodService getGodService() {
+        return godFeature == null ? null : godFeature.service();
     }
 
-    public OpenEnderChestCommand getOpenEnderChestCommand() {
-        return openEnderChestCommand;
+    public MessagingService getMessagingService() {
+        return messagingFeature == null ? null : messagingFeature.service();
+    }
+
+    public BackService getBackService() {
+        return backFeature == null ? null : backFeature.service();
+    }
+
+    public TempWorkbenchManager getTempWorkbenchManager() {
+        return tempWorkbenchManager;
+    }
+
+    public OpenInventoryService getOpenInventoryService() {
+        return openInvFeature == null ? null : openInvFeature.inventoryService();
+    }
+
+    public OpenEnderChestService getOpenEnderChestService() {
+        return openInvFeature == null ? null : openInvFeature.enderChestService();
     }
 
     public AltAccountService getAltAccountService() {

@@ -1,14 +1,22 @@
 package com.boes.sage.features.freeze.listeners;
 
 import com.boes.sage.Sage;
+import com.destroystokyo.paper.event.player.PlayerJumpEvent;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.block.BlockBreakEvent;
+import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
+import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
+import org.bukkit.event.player.PlayerDropItemEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
 
@@ -29,18 +37,97 @@ public class FreezeListener implements Listener {
             return;
         }
 
-        if (event.getFrom().getBlockX() == event.getTo().getBlockX()
-                && event.getFrom().getBlockY() == event.getTo().getBlockY()
-                && event.getFrom().getBlockZ() == event.getTo().getBlockZ()) {
+        if (event.getFrom().getX() == event.getTo().getX()
+                && event.getFrom().getY() == event.getTo().getY()
+                && event.getFrom().getZ() == event.getTo().getZ()) {
             return;
         }
 
-        event.setTo(event.getFrom());
+        event.setTo(event.getFrom().clone().setDirection(event.getTo().getDirection()));
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onJump(PlayerJumpEvent event) {
+        if (!plugin.getFreezeService().isFrozen(event.getPlayer())) {
+            return;
+        }
+
+        event.setCancelled(true);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onPlayerCommand(PlayerCommandPreprocessEvent event) {
         if (!plugin.getFreezeService().isFrozen(event.getPlayer())) {
+            return;
+        }
+
+        event.setCancelled(true);
+        event.getPlayer().sendMessage(plugin.getFreezeService().getFreezeMessage());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onBlockBreak(BlockBreakEvent event) {
+        if (!plugin.getFreezeService().isFrozen(event.getPlayer())) {
+            return;
+        }
+
+        event.setCancelled(true);
+        event.getPlayer().sendMessage(plugin.getFreezeService().getFreezeMessage());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onBlockPlace(BlockPlaceEvent event) {
+        if (!plugin.getFreezeService().isFrozen(event.getPlayer())) {
+            return;
+        }
+
+        event.setCancelled(true);
+        event.getPlayer().sendMessage(plugin.getFreezeService().getFreezeMessage());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onInteract(PlayerInteractEvent event) {
+        if (!plugin.getFreezeService().isFrozen(event.getPlayer())) {
+            return;
+        }
+
+        event.setCancelled(true);
+        event.getPlayer().sendMessage(plugin.getFreezeService().getFreezeMessage());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onDropItem(PlayerDropItemEvent event) {
+        if (!plugin.getFreezeService().isFrozen(event.getPlayer())) {
+            return;
+        }
+
+        event.setCancelled(true);
+        event.getPlayer().sendMessage(plugin.getFreezeService().getFreezeMessage());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onInventoryClick(InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player) || !plugin.getFreezeService().isFrozen(player)) {
+            return;
+        }
+
+        event.setCancelled(true);
+        player.sendMessage(plugin.getFreezeService().getFreezeMessage());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onInventoryDrag(InventoryDragEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player) || !plugin.getFreezeService().isFrozen(player)) {
+            return;
+        }
+
+        event.setCancelled(true);
+        player.sendMessage(plugin.getFreezeService().getFreezeMessage());
+    }
+
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
+    public void onEntityDamage(EntityDamageEvent event) {
+        if (!(event.getEntity() instanceof Player player) || !plugin.getFreezeService().isFrozen(player)) {
             return;
         }
 
@@ -63,10 +150,8 @@ public class FreezeListener implements Listener {
     public void onChat(AsyncPlayerChatEvent event) {
         if (plugin.getFreezeService().isFrozen(event.getPlayer())) {
             event.setCancelled(true);
-            return;
+            event.getPlayer().sendMessage(plugin.getFreezeService().getFreezeMessage());
         }
-
-        event.getRecipients().removeIf(recipient -> plugin.getFreezeService().isFrozen(recipient.getUniqueId()));
     }
 
     @EventHandler

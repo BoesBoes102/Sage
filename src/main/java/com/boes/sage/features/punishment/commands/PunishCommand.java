@@ -1,21 +1,16 @@
 package com.boes.sage.features.punishment.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandCompletion;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import com.boes.sage.features.punishment.data.PunishmentData;
 import com.boes.sage.features.punishment.PunishmentService;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("punish|p")
-@CommandPermission("sage.staff")
-public class PunishCommand extends BaseCommand {
+public class PunishCommand {
 
     private final Sage plugin;
 
@@ -23,65 +18,74 @@ public class PunishCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Default
-    @Syntax("<player> <reason>")
-    @CommandCompletion("@players @punishReasons")
-    public void onCommand(Player player, String targetName, String reason) {
-        reason = reason.toLowerCase();
-        
+    @Command("punish <player> <reason>")
+    @Command("p <player> <reason>")
+    @Permission("sage.staff")
+    public void onCommand(
+            Player issuer,
+            @Argument(value = "player", suggestions = "players") String targetName,
+            @Argument(value = "reason", suggestions = "punishReasons") String reasonInput
+    ) {
+        String reason = reasonInput.toLowerCase();
+
         PunishmentData punishmentData = plugin.getPunishmentReasons().get(reason);
 
         if (punishmentData == null) {
-            player.sendMessage("§cInvalid punishment reason! Available reasons:");
+            issuer.sendMessage("§cInvalid punishment reason! Available reasons:");
             for (String key : plugin.getPunishmentReasons().keySet()) {
-                player.sendMessage("§7- §f" + key);
+                issuer.sendMessage("§7- §f" + key);
             }
             return;
         }
 
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
 
-        if (!target.hasPlayedBefore() && !target.isOnline()) {
-            player.sendMessage("§cPlayer has never joined the server!");
-            return;
-        }
+            if (!target.hasPlayedBefore() && !target.isOnline()) {
+                Bukkit.getScheduler().runTask(plugin, () -> issuer.sendMessage("§cPlayer has never joined the server!"));
+                return;
+            }
 
-        PunishmentService pm = plugin.getPunishmentService();
-        int currentStack = pm.getPlayerStack(target.getUniqueId(), reason);
-        int newStack = currentStack + 1;
+            PunishmentService pm = plugin.getPunishmentService();
+            int currentStack = pm.getPlayerStack(target.getUniqueId(), reason);
+            int newStack = currentStack + 1;
 
-        PunishmentData.StackPunishment punishment = punishmentData.getPunishment(newStack);
+            PunishmentData.StackPunishment punishment = punishmentData.getPunishment(newStack);
 
-        if (punishment == null) {
-            player.sendMessage("§cNo punishment defined for stack " + newStack + " of reason " + reason);
-            return;
-        }
+            if (punishment == null) {
+                Bukkit.getScheduler().runTask(plugin, () ->
+                        issuer.sendMessage("§cNo punishment defined for stack " + newStack + " of reason " + reason));
+                return;
+            }
 
-        pm.incrementStack(target.getUniqueId(), reason);
+            pm.incrementStack(target.getUniqueId(), reason);
 
-        String type = punishment.type().toLowerCase();
-        String duration = punishment.duration();
+            String type = punishment.type().toLowerCase();
+            String duration = punishment.duration();
 
-        switch (type) {
-            case "warn":
-                pm.warn(target, punishmentData.getReason(), player);
-                player.sendMessage("§aWarned " + target.getName() + " for " + punishmentData.getReason() + " (Stack: " + newStack + ")");
-                break;
-            case "mute":
-                pm.mute(target, punishmentData.getReason(), duration, player);
-                player.sendMessage("§aMuted " + target.getName() + " for " + duration + " (Stack: " + newStack + ")");
-                break;
-            case "ban":
-                pm.ban(target, punishmentData.getReason(), duration, player);
-                player.sendMessage("§aBanned " + target.getName() + " for " + (duration == null ? "permanent" : duration) + " (Stack: " + newStack + ")");
-                break;
-            case "blacklist":
-                pm.blacklist(target, punishmentData.getReason(), player);
-                player.sendMessage("§4Blacklisted " + target.getName() + " (Stack: " + newStack + ")");
-                break;
-            default:
-                player.sendMessage("§cInvalid punishment type: " + type);
-                break;
-        }
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                switch (type) {
+                    case "warn":
+                        pm.warn(target, punishmentData.getReason(), issuer);
+                        issuer.sendMessage("§aWarned " + target.getName() + " for " + punishmentData.getReason() + " (Stack: " + newStack + ")");
+                        break;
+                    case "mute":
+                        pm.mute(target, punishmentData.getReason(), duration, issuer);
+                        issuer.sendMessage("§aMuted " + target.getName() + " for " + duration + " (Stack: " + newStack + ")");
+                        break;
+                    case "ban":
+                        pm.ban(target, punishmentData.getReason(), duration, issuer);
+                        issuer.sendMessage("§aBanned " + target.getName() + " for " + (duration == null ? "permanent" : duration) + " (Stack: " + newStack + ")");
+                        break;
+                    case "blacklist":
+                        pm.blacklist(target, punishmentData.getReason(), issuer);
+                        issuer.sendMessage("§4Blacklisted " + target.getName() + " (Stack: " + newStack + ")");
+                        break;
+                    default:
+                        issuer.sendMessage("§cInvalid punishment type: " + type);
+                        break;
+                }
+            });
+        });
     }
 }

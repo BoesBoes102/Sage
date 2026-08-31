@@ -27,16 +27,23 @@ public class HistoryGUI {
     }
 
     public void open() {
-        setupButtons();
-        viewer.openInventory(inventory);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            List<PunishmentHistory> fullHistory = plugin.getPunishmentService().getPlayerHistory(target.getUniqueId());
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                setupButtons(fullHistory);
+                if (viewer.isOnline()) {
+                    viewer.openInventory(inventory);
+                }
+            });
+        });
     }
 
-    private void setupButtons() {
-        inventory.setItem(11, createButton(Material.YELLOW_WOOL, "§e§lWARNINGS", "warn"));
-        inventory.setItem(12, createButton(Material.RED_WOOL, "§c§lMUTES", "mute"));
-        inventory.setItem(13, createButton(Material.BLACK_WOOL, "§4§lBANS", "ban"));
-        inventory.setItem(14, createButton(Material.GRAY_WOOL, "§0§lBLACKLISTS", "blacklist"));
-        inventory.setItem(15, createButton(Material.ORANGE_WOOL, "§6§lKICKS", "kick"));
+    private void setupButtons(List<PunishmentHistory> fullHistory) {
+        inventory.setItem(11, createButton(fullHistory, Material.YELLOW_WOOL, "§e§lWARNINGS", "warn"));
+        inventory.setItem(12, createButton(fullHistory, Material.RED_WOOL, "§c§lMUTES", "mute"));
+        inventory.setItem(13, createButton(fullHistory, Material.BLACK_WOOL, "§4§lBANS", "ban"));
+        inventory.setItem(14, createButton(fullHistory, Material.GRAY_WOOL, "§0§lBLACKLISTS", "blacklist"));
+        inventory.setItem(15, createButton(fullHistory, Material.ORANGE_WOOL, "§6§lKICKS", "kick"));
 
         for (int i = 0; i < 27; i++) {
             if (inventory.getItem(i) == null) {
@@ -45,14 +52,14 @@ public class HistoryGUI {
         }
     }
 
-    private ItemStack createButton(Material material, String name, String type) {
+    private ItemStack createButton(List<PunishmentHistory> fullHistory, Material material, String name, String type) {
         ItemStack item = new ItemStack(material);
         ItemMeta meta = item.getItemMeta();
         meta.setDisplayName(name);
 
+        long count = fullHistory.stream().filter(h -> h.getType().equalsIgnoreCase(type)).count();
         List<String> lore = new ArrayList<>();
-        List<PunishmentHistory> history = plugin.getPunishmentService().getHistoryByType(target.getUniqueId(), type);
-        lore.add("§7Count: §f" + history.size());
+        lore.add("§7Count: §f" + count);
 
         meta.setLore(lore);
         item.setItemMeta(meta);

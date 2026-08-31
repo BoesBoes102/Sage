@@ -1,21 +1,17 @@
 package com.boes.sage.commands.StaffCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Optional;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotation.specifier.Greedy;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
 import java.util.ArrayList;
 import java.util.List;
 
-@CommandAlias("kickall")
-@CommandPermission("sage.kickall")
-public class KickAllCommand extends BaseCommand {
+public class KickAllCommand {
 
     private final Sage plugin;
 
@@ -23,12 +19,12 @@ public class KickAllCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Default
-    @Syntax("[reason]")
-    public void onCommand(Player sender, @Optional String[] reasonArgs) {
-        String reason = (reasonArgs != null && reasonArgs.length > 0)
-                ? String.join(" ", reasonArgs)
-                : "Server maintenance";
+    @Command("kickall [reason]")
+    @Permission("sage.kickall")
+    public void onCommand(Player sender, @Argument("reason") @Greedy String reasonInput) {
+        String reason = (reasonInput != null && !reasonInput.isEmpty())
+                ? reasonInput
+                : "No Reason Given";
 
         List<Player> playersToKick = new ArrayList<>(Bukkit.getOnlinePlayers());
 
@@ -42,7 +38,7 @@ public class KickAllCommand extends BaseCommand {
                 continue;
             }
 
-            player.kickPlayer("§c" + reason);
+            player.kickPlayer("§c§lKICKED\n§7Reason: §f" + reason);
             kickedCount++;
         }
 

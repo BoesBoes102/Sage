@@ -1,7 +1,5 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
 import com.boes.sage.Sage;
 import net.md_5.bungee.api.chat.ClickEvent;
 import net.md_5.bungee.api.chat.ComponentBuilder;
@@ -10,11 +8,11 @@ import net.md_5.bungee.api.chat.TextComponent;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("uuid")
-@Description("Get a player's UUID")
-@CommandPermission("sage.uuid")
-public class UuidCommand extends BaseCommand {
+public class UuidCommand {
 
     private final Sage plugin;
 
@@ -22,15 +20,14 @@ public class UuidCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Default
-    @CommandCompletion("@players")
-    @Syntax("[player]")
-    public void onCommand(CommandSender sender, String[] args) {
+    @Command("uuid [player]")
+    @Permission("sage.uuid")
+    public void onCommand(CommandSender sender, @Argument(value = "player", suggestions = "players") String targetName) {
 
-        Player target = null;
+        Player target;
 
-        if (args.length > 0) {
-            target = Bukkit.getPlayer(args[0]);
+        if (targetName != null) {
+            target = Bukkit.getPlayer(targetName);
             if (target == null) {
                 sender.sendMessage("§cPlayer not found!");
                 return;

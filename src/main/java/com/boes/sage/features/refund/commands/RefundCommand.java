@@ -1,12 +1,5 @@
 package com.boes.sage.features.refund.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandCompletion;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Description;
-import co.aikar.commands.annotation.Optional;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import com.boes.sage.features.refund.data.RefundSnapshot;
 import org.bukkit.Bukkit;
@@ -25,6 +18,8 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
 
 import java.time.Instant;
 import java.time.ZoneId;
@@ -36,9 +31,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
-@CommandAlias("refund")
-@Description("Review and claim saved player refund snapshots")
-public class RefundCommand extends BaseCommand implements Listener {
+public class RefundCommand implements Listener {
     private static final String ADMIN_TITLE_PREFIX = ChatColor.DARK_GRAY + "Refunds: " + ChatColor.YELLOW;
     private static final String DETAIL_TITLE_PREFIX = ChatColor.DARK_GRAY + "Refund: " + ChatColor.YELLOW;
     private static final String CLAIM_TITLE = ChatColor.DARK_GRAY + "Your Refunds";
@@ -56,27 +49,38 @@ public class RefundCommand extends BaseCommand implements Listener {
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
-    @Default
-    @Syntax("[player]")
-    @CommandCompletion("@players")
-    public void onCommand(Player player, @Optional String targetName) {
+    @Command("refund [player]")
+    public void onCommand(
+            Player issuer,
+            @Argument(value = "player", suggestions = "players") String targetName
+    ) {
         if (targetName == null || targetName.isBlank()) {
-            openClaimGui(player);
+            openClaimGui(issuer);
             return;
         }
 
-        if (!player.hasPermission("sage.refund.admin")) {
-            player.sendMessage(ChatColor.RED + "You don't have permission to view player refunds!");
+        if (!issuer.hasPermission("sage.refund.admin")) {
+            issuer.sendMessage(ChatColor.RED + "You don't have permission to view player refunds!");
             return;
         }
 
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
-        if (!target.hasPlayedBefore() && !target.isOnline()) {
-            player.sendMessage(ChatColor.RED + "Player has never joined!");
-            return;
-        }
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
+            if (!target.hasPlayedBefore() && !target.isOnline()) {
+                Bukkit.getScheduler().runTask(plugin, () -> issuer.sendMessage(ChatColor.RED + "Player has never joined!"));
+                return;
+            }
 
-        openAdminGui(player, target.getUniqueId(), target.getName() == null ? targetName : target.getName());
+            UUID targetUuid = target.getUniqueId();
+            String targetDisplayName = target.getName() == null ? targetName : target.getName();
+
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!issuer.isOnline()) {
+                    return;
+                }
+                openAdminGui(issuer, targetUuid, targetDisplayName);
+            });
+        });
     }
 
     private void openAdminGui(Player viewer, UUID targetUuid, String targetName) {
@@ -93,10 +97,6 @@ public class RefundCommand extends BaseCommand implements Listener {
             gui.setItem(slot, createSnapshotPaper(snapshot, true));
             slotIds.put(slot, snapshot.getId());
             slot++;
-        }
-
-        for (int i = 45; i < 54; i++) {
-            gui.setItem(i, createGlassPane());
         }
 
         if (snapshots.isEmpty()) {
@@ -175,10 +175,6 @@ public class RefundCommand extends BaseCommand implements Listener {
             gui.setItem(slot, createSnapshotPaper(snapshot, false));
             slotIds.put(slot, snapshot.getId());
             slot++;
-        }
-
-        for (int i = 45; i < 54; i++) {
-            gui.setItem(i, createGlassPane());
         }
 
         if (snapshots.isEmpty()) {
@@ -364,14 +360,12 @@ public class RefundCommand extends BaseCommand implements Listener {
         lore.add(ChatColor.GRAY + "XP refund: " + ChatColor.GREEN + snapshot.getTotalExperience()
                 + ChatColor.GRAY + " total XP (level " + snapshot.getLevel() + ")");
         if (snapshot.isPendingClaim()) {
-            lore.add(ChatColor.GREEN + "Pending player claim");
+            lore.add(adminActions ? ChatColor.GREEN + "Pending player claim" : ChatColor.GREEN + "Click to claim!");
         }
-        lore.add("");
         if (adminActions) {
+            lore.add("");
             lore.add(ChatColor.YELLOW + "Left click " + ChatColor.GRAY + "to open inventory copy");
             lore.add(ChatColor.YELLOW + "Right click " + ChatColor.GRAY + "to teleport in creative mode");
-        } else {
-            lore.add(ChatColor.YELLOW + "Left click " + ChatColor.GRAY + "to claim");
         }
 
         return createButton(Material.PAPER, ChatColor.WHITE + formatReason(snapshot.getSaveReason()) + " refund", lore);

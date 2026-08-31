@@ -1,16 +1,14 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("xp")
-@Description("Manage player experience")
-@CommandPermission("sage.xp")
-public class XpCommand extends BaseCommand {
+public class XpCommand {
 
     private final Sage plugin;
 
@@ -18,9 +16,8 @@ public class XpCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Default
-    @Syntax("show [player]|reset [player]|set <player> <amount>|give <player> <amount>")
-    
+    @Command("xp")
+    @Permission("sage.xp")
     public void onDefault(CommandSender sender) {
         sender.sendMessage("§eXP Commands:");
         sender.sendMessage("§6/xp show [player] §7- Show XP");
@@ -28,13 +25,14 @@ public class XpCommand extends BaseCommand {
         sender.sendMessage("§6/xp set <player> <amount> §7- Set XP");
         sender.sendMessage("§6/xp give <player> <amount> §7- Give XP");
     }
-    @Subcommand("show")
-    @CommandCompletion("@players")
-    public void onShow(CommandSender sender, String[] args) {
-        Player target = null;
 
-        if (args.length > 0) {
-            target = Bukkit.getPlayer(args[0]);
+    @Command("xp show [player]")
+    @Permission("sage.xp")
+    public void onShow(CommandSender sender, @Argument(value = "player", suggestions = "players") String targetName) {
+        Player target;
+
+        if (targetName != null) {
+            target = Bukkit.getPlayer(targetName);
             if (target == null) {
                 sender.sendMessage("§cPlayer not found!");
                 return;
@@ -50,13 +48,13 @@ public class XpCommand extends BaseCommand {
         showXp(sender, target);
     }
 
-    @Subcommand("reset")
-    @CommandCompletion("@players")
-    public void onReset(CommandSender sender, String[] args) {
-        Player target = null;
+    @Command("xp reset [player]")
+    @Permission("sage.xp")
+    public void onReset(CommandSender sender, @Argument(value = "player", suggestions = "players") String targetName) {
+        Player target;
 
-        if (args.length > 0) {
-            target = Bukkit.getPlayer(args[0]);
+        if (targetName != null) {
+            target = Bukkit.getPlayer(targetName);
             if (target == null) {
                 sender.sendMessage("§cPlayer not found!");
                 return;
@@ -72,33 +70,26 @@ public class XpCommand extends BaseCommand {
         resetXp(sender, target);
     }
 
-    @Subcommand("set")
-    @CommandCompletion("@players 1|10|50|100")
-    public void onSet(CommandSender sender, String[] args) {
-        Player target = null;
-        int amount = 0;
-
-        if (args.length < 1) {
-            sender.sendMessage("§cUsage: /xp set [player] <amount>");
+    @Command("xp set <player> <amount>")
+    @Permission("sage.xp")
+    public void onSet(
+            CommandSender sender,
+            @Argument(value = "player", suggestions = "players") String player,
+            @Argument("amount") String amount
+    ) {
+        Player target = Bukkit.getPlayer(player);
+        if (target == null) {
+            sender.sendMessage("§cPlayer not found!");
             return;
         }
 
+        applySet(sender, target, amount);
+    }
+
+    private void applySet(CommandSender sender, Player target, String amountArg) {
+        int amount;
         try {
-            if (args.length == 1) {
-                if (!(sender instanceof Player)) {
-                    sender.sendMessage("§cYou must specify a player from console!");
-                    return;
-                }
-                target = (Player) sender;
-                amount = Integer.parseInt(args[0]);
-            } else {
-                target = Bukkit.getPlayer(args[0]);
-                if (target == null) {
-                    sender.sendMessage("§cPlayer not found!");
-                    return;
-                }
-                amount = Integer.parseInt(args[1]);
-            }
+            amount = Integer.parseInt(amountArg);
         } catch (NumberFormatException e) {
             sender.sendMessage("§cAmount must be a number!");
             return;
@@ -111,7 +102,7 @@ public class XpCommand extends BaseCommand {
 
         target.setLevel(amount);
         target.setExp(0);
-        
+
         if (sender.equals(target)) {
             sender.sendMessage("§aYour XP level has been set to " + amount + "!");
         } else {
@@ -120,33 +111,26 @@ public class XpCommand extends BaseCommand {
         }
     }
 
-    @Subcommand("give")
-    @CommandCompletion("@players 1|10|50|100")
-    public void onGive(CommandSender sender, String[] args) {
-        Player target = null;
-        int amount = 0;
-
-        if (args.length < 1) {
-            sender.sendMessage("§cUsage: /xp give [player] <amount>");
+    @Command("xp give <player> <amount>")
+    @Permission("sage.xp")
+    public void onGive(
+            CommandSender sender,
+            @Argument(value = "player", suggestions = "players") String player,
+            @Argument("amount") String amount
+    ) {
+        Player target = Bukkit.getPlayer(player);
+        if (target == null) {
+            sender.sendMessage("§cPlayer not found!");
             return;
         }
 
+        applyGive(sender, target, amount);
+    }
+
+    private void applyGive(CommandSender sender, Player target, String amountArg) {
+        int amount;
         try {
-            if (args.length == 1) {
-                if (!(sender instanceof Player)) {
-                    sender.sendMessage("§cYou must specify a player from console!");
-                    return;
-                }
-                target = (Player) sender;
-                amount = Integer.parseInt(args[0]);
-            } else {
-                target = Bukkit.getPlayer(args[0]);
-                if (target == null) {
-                    sender.sendMessage("§cPlayer not found!");
-                    return;
-                }
-                amount = Integer.parseInt(args[1]);
-            }
+            amount = Integer.parseInt(amountArg);
         } catch (NumberFormatException e) {
             sender.sendMessage("§cAmount must be a number!");
             return;
@@ -158,7 +142,7 @@ public class XpCommand extends BaseCommand {
         }
 
         target.giveExpLevels(amount);
-        
+
         if (sender.equals(target)) {
             sender.sendMessage("§aYou received " + amount + " XP levels!");
         } else {

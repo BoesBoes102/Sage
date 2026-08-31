@@ -1,16 +1,13 @@
 package com.boes.sage.features.notification.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotation.specifier.Greedy;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("adminchat|ac")
-@CommandPermission("sage.adminchat")
-public class AdminChatCommand extends BaseCommand {
+public class AdminChatCommand {
 
     private final Sage plugin;
 
@@ -18,14 +15,13 @@ public class AdminChatCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Default
-    @Syntax("<message>")
-    public void onCommand(Player player, String[] messageArgs) {
-        if (messageArgs.length == 0) {
-            player.sendMessage("\u00A7cUsage: /adminchat <message>");
-            return;
-        }
-
-        plugin.getNotificationService().sendAdminChat(player, String.join(" ", messageArgs));
+    @Command("adminchat <message>")
+    @Command("ac <message>")
+    @Permission("sage.adminchat")
+    public void onCommand(
+            Player player,
+            @Argument(value = "message", suggestions = "none") @Greedy String message
+    ) {
+        plugin.getNotificationService().sendAdminChat(player, message);
     }
 }

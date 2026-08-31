@@ -1,32 +1,30 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
 import java.util.Objects;
 
-@CommandAlias("heal")
-@Description("Heal yourself or another player")
-@CommandPermission("sage.heal")
-public class HealCommand extends BaseCommand {
+public class HealCommand {
 
     private final Sage plugin;
 
     public HealCommand(Sage plugin) {
         this.plugin = plugin;
     }
-    @Default
-    @CommandCompletion("@players")
-    @Syntax("[player]")
-    public void onCommand(Player sender, String[] args) {
-        Player target = null;
 
-        if (args.length > 0) {
-            target = Bukkit.getPlayer(args[0]);
+    @Command("heal [player]")
+    @Permission("sage.heal")
+    public void onCommand(Player sender, @Argument(value = "player", suggestions = "players") String targetName) {
+        Player target;
+
+        if (targetName != null) {
+            target = Bukkit.getPlayer(targetName);
             if (target == null) {
                 sender.sendMessage("§cPlayer not found!");
                 return;

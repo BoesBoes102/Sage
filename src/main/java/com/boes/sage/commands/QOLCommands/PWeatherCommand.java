@@ -1,15 +1,13 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
 import com.boes.sage.Sage;
 import org.bukkit.WeatherType;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("pweather")
-@Description("Set personal weather")
-@CommandPermission("sage.pweather")
-public class PWeatherCommand extends BaseCommand {
+public class PWeatherCommand {
 
     private final Sage plugin;
 
@@ -17,19 +15,23 @@ public class PWeatherCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Subcommand("reset")
-    @Syntax("reset")
+    @Command("pweather reset")
+    @Permission("sage.pweather")
     public void onReset(Player player) {
         player.resetPlayerWeather();
-        plugin.getConfig().set("player-weather." + player.getUniqueId(), null);
-        plugin.saveConfig();
+        plugin.getPlayerRuntimeDataManager().clearPlayerWeather(player.getUniqueId());
         player.sendMessage("§aPlayer weather reset!");
     }
-    @Default
-    @CommandCompletion("clear|rain|thunder")
-    @Syntax("<clear|rain|thunder>")
-    public void onCommand(Player player, String weatherArg) {
+
+    @Command("pweather <weather>")
+    @Permission("sage.pweather")
+    public void onCommand(Player player, @Argument(value = "weather", suggestions = "pweatherOptions") String weatherArg) {
         weatherArg = weatherArg.toLowerCase();
+
+        if (weatherArg.equals("reset")) {
+            onReset(player);
+            return;
+        }
 
         switch (weatherArg) {
             case "clear":
@@ -40,12 +42,11 @@ public class PWeatherCommand extends BaseCommand {
                 break;
             default:
                 player.sendMessage("§cInvalid weather type!");
-                player.sendMessage("§7Types: clear, rain, thunder");
+                player.sendMessage("§7Types: clear, rain, thunder, reset");
                 return;
         }
 
-        plugin.getConfig().set("player-weather." + player.getUniqueId(), weatherArg);
-        plugin.saveConfig();
+        plugin.getPlayerRuntimeDataManager().setPlayerWeather(player.getUniqueId(), weatherArg);
 
         player.sendMessage("§aPlayer weather set to " + weatherArg + "!");
     }

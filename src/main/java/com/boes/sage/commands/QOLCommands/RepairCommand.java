@@ -1,27 +1,25 @@
 package com.boes.sage.commands.QOLCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
 import com.boes.sage.Sage;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.Damageable;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("repair")
-@Description("Repair your items")
-@CommandPermission("sage.repair")
-public class RepairCommand extends BaseCommand {
+public class RepairCommand {
 
     private final Sage plugin;
 
     public RepairCommand(Sage plugin) {
         this.plugin = plugin;
     }
-    @Default
-    @CommandCompletion("hand|all")
-    @Syntax("<hand|all>")
-    public void onCommand(Player player, String mode) {
+
+    @Command("repair <mode>")
+    @Permission("sage.repair")
+    public void onCommand(Player player, @Argument(value = "mode", suggestions = "repairModes") String mode) {
         mode = mode.toLowerCase();
 
         if (mode.equals("hand")) {

@@ -1,19 +1,14 @@
 package com.boes.sage.commands.TeleportCommands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandCompletion;
-import co.aikar.commands.annotation.CommandPermission;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("tphere")
-@CommandPermission("sage.tphere")
-public class TpHereCommand extends BaseCommand {
+public class TpHereCommand {
 
     private final Sage plugin;
 
@@ -21,39 +16,41 @@ public class TpHereCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Default
-    @Syntax("<player>")
-    @CommandCompletion("@players")
-    public void onCommand(Player player, String targetName) {
+    @Command("tphere <player>")
+    @Permission("sage.tphere")
+    public void onCommand(Player issuer, @Argument(value = "player", suggestions = "players") String targetName) {
         Player target = Bukkit.getPlayer(targetName);
 
         if (target != null) {
-            if (target.equals(player)) {
-                player.sendMessage("§cYou cannot teleport yourself to yourself!");
+            if (target.equals(issuer)) {
+                issuer.sendMessage("§cYou cannot teleport yourself to yourself!");
                 return;
             }
 
-            target.teleport(player.getLocation());
-            player.sendMessage("§aTeleported §e" + target.getName() + " §ato you!");
-            target.sendMessage("§aYou have been teleported to §e" + player.getName() + "§a!");
+            target.teleport(issuer.getLocation());
+            issuer.sendMessage("§aTeleported §e" + target.getName() + " §ato you!");
+            target.sendMessage("§aYou have been teleported to §e" + issuer.getName() + "§a!");
         } else {
-            OfflinePlayer offlineTarget = Bukkit.getOfflinePlayer(targetName);
-            
-            if (!offlineTarget.hasPlayedBefore()) {
-                player.sendMessage("§cPlayer has never joined!");
-                return;
-            }
+            String pendingTeleport = issuer.getLocation().getWorld().getName() + ";" +
+                issuer.getLocation().getX() + ";" +
+                issuer.getLocation().getY() + ";" +
+                issuer.getLocation().getZ() + ";" +
+                issuer.getLocation().getYaw() + ";" +
+                issuer.getLocation().getPitch();
 
-            plugin.getConfig().set("pending-teleports." + offlineTarget.getUniqueId(),
-                player.getLocation().getWorld().getName() + ";" +
-                player.getLocation().getX() + ";" +
-                player.getLocation().getY() + ";" +
-                player.getLocation().getZ() + ";" +
-                player.getLocation().getYaw() + ";" +
-                player.getLocation().getPitch());
-            plugin.saveConfig();
-            
-            player.sendMessage("§aTeleport queued for §e" + offlineTarget.getName() + " §a(offline). They will be teleported when they log in.");
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                OfflinePlayer offlineTarget = Bukkit.getOfflinePlayer(targetName);
+
+                if (!offlineTarget.hasPlayedBefore()) {
+                    Bukkit.getScheduler().runTask(plugin, () -> issuer.sendMessage("§cPlayer has never joined!"));
+                    return;
+                }
+
+                plugin.getPlayerRuntimeDataManager().setPendingTeleport(offlineTarget.getUniqueId(), pendingTeleport);
+
+                Bukkit.getScheduler().runTask(plugin, () ->
+                        issuer.sendMessage("§aTeleport queued for §e" + offlineTarget.getName() + " §a(offline). They will be teleported when they log in."));
+            });
         }
     }
 }

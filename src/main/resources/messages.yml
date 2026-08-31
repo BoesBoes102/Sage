@@ -1,10 +1,10 @@
 messages:
-  ban-screen: "&c&lYou have been banned!\n&7Reason: &f{reason}\n&7Duration: &f{duration}"
-  blacklist-screen: "&c&lYou have been blacklisted!\n&7Reason: &f{reason}\n&7Duration: &f{duration}"
-  mute-title: "&c&lYou have been MUTED"
-  mute-message: "&c&lYou have been muted!\n&7Reason: &f{reason}\n&7Duration: &f{duration}"
-  warn-title: "&e&lYou have been WARNED"
-  warn-message: "&e&lYou have been warned!\n&7Reason: &f{reason}"
+  ban-screen: "<red><bold>You have been banned!</bold></red>\n<gray>Reason: <white><reason></white></gray>\n<gray>Duration: <white><duration></white></gray>"
+  blacklist-screen: "<dark_red><bold>You have been blacklisted!</bold></dark_red>\n<gray>Reason: <white><reason></white></gray>\n<gray>Duration: <white><duration></white></gray>"
+  mute-title: "<red><bold>You have been MUTED</bold></red>"
+  mute-message: "<red><bold>You have been muted!</bold></red>\n<gray>Reason: <white><reason></white></gray>\n<gray>Duration: <white><duration></white></gray>"
+  warn-title: "<yellow><bold>You have been WARNED</bold></yellow>"
+  warn-message: "<yellow><bold>You have been warned!</bold></yellow>\n<gray>Reason: <white><reason></white></gray>"
 
 broadcast:
   prefix: "&6&l"

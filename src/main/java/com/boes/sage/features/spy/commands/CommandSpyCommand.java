@@ -1,7 +1,5 @@
 package com.boes.sage.features.spy.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.*;
 import com.boes.sage.Sage;
 import com.boes.sage.features.spy.SpyService;
 import org.bukkit.Bukkit;
@@ -9,11 +7,11 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
+import org.incendo.cloud.annotations.Permission;
 
-@CommandAlias("commandspy|spycmd")
-@Description("Toggle command spy mode")
-@CommandPermission("sage.commandspy")
-public class CommandSpyCommand extends BaseCommand implements Listener {
+public class CommandSpyCommand implements Listener {
 
     private final Sage plugin;
 
@@ -22,10 +20,13 @@ public class CommandSpyCommand extends BaseCommand implements Listener {
         Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
-    @Default
-    @Syntax("[on|off]")
-    @CommandCompletion("on|off")
-    public void onCommand(Player player, @Optional String state) {
+    @Command("commandspy [state]")
+    @Command("spycmd [state]")
+    @Permission("sage.commandspy")
+    public void onCommand(
+            Player player,
+            @Argument("state") String state
+    ) {
         SpyService spyManager = plugin.getSpyService();
 
         if (state == null) {

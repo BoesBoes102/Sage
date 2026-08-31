@@ -1,19 +1,14 @@
 package com.boes.sage.features.punishment.commands;
 
-import co.aikar.commands.BaseCommand;
-import co.aikar.commands.annotation.CommandAlias;
-import co.aikar.commands.annotation.CommandCompletion;
-import co.aikar.commands.annotation.Default;
-import co.aikar.commands.annotation.Optional;
-import co.aikar.commands.annotation.Syntax;
 import com.boes.sage.Sage;
 import com.boes.sage.features.punishment.gui.HistoryGUI;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
+import org.incendo.cloud.annotations.Argument;
+import org.incendo.cloud.annotations.Command;
 
-@CommandAlias("history|hist")
-public class HistoryCommand extends BaseCommand {
+public class HistoryCommand {
 
     private final Sage plugin;
 
@@ -21,31 +16,40 @@ public class HistoryCommand extends BaseCommand {
         this.plugin = plugin;
     }
 
-    @Default
-    @Syntax("[player]")
-    @CommandCompletion("@players")
-    public void onCommand(Player player, @Optional String targetName) {
+    @Command("history [player]")
+    @Command("hist [player]")
+    public void onCommand(
+            Player issuer,
+            @Argument(value = "player", suggestions = "players") String targetName
+    ) {
         if (targetName == null) {
-            if (!player.hasPermission("sage.history.self")) {
-                player.sendMessage("§cYou don't have permission!");
+            if (!issuer.hasPermission("sage.history.self")) {
+                issuer.sendMessage("§cYou don't have permission!");
                 return;
             }
-            new HistoryGUI(plugin, player, player).open();
+            new HistoryGUI(plugin, issuer, issuer).open();
             return;
         }
 
-        if (!player.hasPermission("sage.history.others")) {
-            player.sendMessage("§cYou don't have permission to view others' history!");
+        if (!issuer.hasPermission("sage.history.others")) {
+            issuer.sendMessage("§cYou don't have permission to view others' history!");
             return;
         }
 
-        OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            OfflinePlayer target = Bukkit.getOfflinePlayer(targetName);
 
-        if (!target.hasPlayedBefore() && !target.isOnline()) {
-            player.sendMessage("§cPlayer has never joined!");
-            return;
-        }
+            if (!target.hasPlayedBefore() && !target.isOnline()) {
+                Bukkit.getScheduler().runTask(plugin, () -> issuer.sendMessage("§cPlayer has never joined!"));
+                return;
+            }
 
-        new HistoryGUI(plugin, player, target).open();
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!issuer.isOnline()) {
+                    return;
+                }
+                new HistoryGUI(plugin, issuer, target).open();
+            });
+        });
     }
 }
